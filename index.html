@@ -6,300 +6,197 @@
     <title>CronoZ - Seu App Completo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .app-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
-            overflow: hidden;
-        }
-        .header {
-            background: #FFD700;
-            color: #333;
-            padding: 25px;
-            text-align: center;
-        }
-        .logo {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-        .app-title {
-            font-size: 32px;
-            font-weight: bold;
-            letter-spacing: 2px;
-        }
-        .tagline {
-            color: #666;
-            margin-top: 5px;
-        }
-        .login-form {
-            padding: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-        .form-group input:focus {
-            border-color: #FFD700;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(255,215,0,0.2);
-        }
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-            margin-bottom: 15px;
-        }
-        .btn-primary {
-            background: #FFD700;
-            color: #333;
-        }
-        .btn-primary:hover {
-            background: #e6c200;
-            transform: translateY(-2px);
-        }
-        .btn-google {
-            background: #4285F4;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn-google:hover {
-            background: #357ae8;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-        }
-        .hidden {
-            display: none;
-        }
-        #app-content {
-            padding: 20px;
-        }
-        .menu {
-            display: flex;
-            justify-content: space-around;
-            background: #f8f9fa;
-            padding: 15px;
-            border-top: 2px solid #FFD700;
-        }
-        .menu-item {
-            text-align: center;
-            color: #666;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 10px;
-            transition: 0.3s;
-        }
-        .menu-item.active {
-            color: #FFD700;
-            background: rgba(255,215,0,0.1);
-        }
-        .menu-item i {
-            font-size: 24px;
-            display: block;
-            margin-bottom: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Firebase SDKs (NOVO FORMATO MODULAR) -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import { getStorage } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
+            authDomain: "cronoz-app-2026.firebaseapp.com",
+            projectId: "cronoz-app-2026",
+            storageBucket: "cronoz-app-2026.firebasestorage.app",
+            messagingSenderId: "961118541246",
+            appId: "1:961118541246:web:5b8afd85ecfa41969795ef",
+            measurementId: "G-5MKXDX2HR6"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        
+        // Exportar para uso global
+        window.firebaseApp = app;
+        window.auth = getAuth(app);
+        window.db = getFirestore(app);
+        window.storage = getStorage(app);
+        window.googleProvider = new GoogleAuthProvider();
+        
+        console.log('✅ Firebase v12 inicializado!');
+    </script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Tela de Login -->
-        <div id="login-screen">
-            <div class="header">
-                <div class="logo">
-                    <i class="fas fa-clock"></i>
+    <!-- Tela de Login -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="logo-section">
+                <div class="logo-animation">
+                    <div class="logo-circle"></div>
+                    <div class="logo-z">Z</div>
                 </div>
-                <div class="app-title">CronoZ</div>
-                <div class="tagline">Conectando momentos, preservando memórias</div>
+                <h1 class="app-title">CronoZ</h1>
+                <p class="app-tagline">Conectando momentos, preservando memórias</p>
             </div>
             
             <div class="login-form">
                 <div class="form-group">
                     <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
-                    <input type="email" id="email" placeholder="seu@email.com">
+                    <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
                 </div>
                 
                 <div class="form-group">
                     <label for="password"><i class="fas fa-lock"></i> Senha</label>
-                    <input type="password" id="password" placeholder="••••••••">
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+                    <button class="toggle-password" type="button"><i class="fas fa-eye"></i></button>
                 </div>
                 
                 <button id="login-btn" class="btn btn-primary">
                     <i class="fas fa-sign-in-alt"></i> Entrar
                 </button>
                 
-                <div style="text-align: center; margin: 20px 0; color: #999;">ou</div>
+                <div class="divider">
+                    <span>ou</span>
+                </div>
                 
                 <button id="google-login-btn" class="btn btn-google">
                     <i class="fab fa-google"></i> Continuar com Google
                 </button>
                 
-                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <a href="#" style="color: #666; text-decoration: none;">Esqueci a senha</a>
-                    <a href="#" id="register-link" style="color: #FFD700; text-decoration: none;">Criar conta</a>
+                <div class="login-links">
+                    <a href="#" id="forgot-password">Esqueci a senha</a>
+                    <a href="#" id="register-link">Criar conta</a>
                 </div>
             </div>
             
-            <div class="footer">
-                © 2024 CronoZ. Todos os direitos reservados.
-            </div>
-        </div>
-        
-        <!-- App Principal (inicialmente escondido) -->
-        <div id="app-screen" class="hidden">
-            <div class="header" style="border-radius: 0;">
-                <div style="text-align: center;">
-                    <div style="font-size: 24px;">👋</div>
-                    <div class="app-title" style="font-size: 24px; color: white;">Bem-vindo!</div>
-                </div>
-            </div>
-            
-            <div id="app-content">
-                <h3 style="color: #333; margin-bottom: 20px;">🎉 CronoZ Funcionando!</h3>
-                <p style="color: #666; margin-bottom: 15px;">✅ Firebase conectado com sucesso!</p>
-                <p style="color: #666; margin-bottom: 20px;">✅ App online no GitHub Pages!</p>
-                
-                <div style="background: #f0f8ff; padding: 15px; border-radius: 10px; border-left: 4px solid #FFD700;">
-                    <p style="color: #333;"><strong>Próximos passos:</strong></p>
-                    <ol style="color: #666; margin-left: 20px; margin-top: 10px;">
-                        <li>Adicionar mais funcionalidades</li>
-                        <li>Configurar Authentication no Firebase</li>
-                        <li>Testar Firestore Database</li>
-                        <li>Implementar todas as telas</li>
-                    </ol>
-                </div>
-            </div>
-            
-            <div class="menu">
-                <div class="menu-item active">
-                    <i class="fas fa-home"></i>
-                    <span>Início</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-users"></i>
-                    <span>Contatos</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-comment"></i>
-                    <span>Chat</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-calendar"></i>
-                    <span>Calendário</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-cog"></i>
-                    <span>Config</span>
-                </div>
+            <div class="login-footer">
+                <p>© 2024 CronoZ. Todos os direitos reservados.</p>
             </div>
         </div>
     </div>
-
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
-    <script>
-        // COLE AQUI SEU CÓDIGO DO FIREBASE!
-        const firebaseConfig = {
-            apiKey: "AIzaSyBIVOONLoVMqIT...",
-            authDomain: "cronoz-app-2026.firebaseapp.com",
-            projectId: "cronoz-app-2026",
-            storageBucket: "cronoz-app-2026.appspot.com",
-            messagingSenderId: "961118541246",
-            appId: "1:961118541246:web:5b8afd85ecfa41969795ef",
-            measurementId: "G-SMKXDX2HR6"
-        };
-        
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        
-        // Referências
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-        const googleProvider = new firebase.auth.GoogleAuthProvider();
-        
-        // Mostrar no console que está funcionando
-        console.log('✅ Firebase conectado!', firebase.app().name);
-        console.log('🌐 App URL:', window.location.href);
-        
-        // Login Simulado para Teste
-        document.getElementById('login-btn').addEventListener('click', function() {
-            const email = document.getElementById('email').value || 'teste@cronoz.com';
-            const password = document.getElementById('password').value || '123456';
-            
-            // Mostrar app
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            
-            // Mostrar mensagem
-            document.getElementById('app-content').innerHTML = `
-                <h3 style="color: #333; margin-bottom: 20px;">🎉 Login Bem-sucedido!</h3>
-                <p style="color: #666; margin-bottom: 15px;">Email: ${email}</p>
-                <p style="color: #666; margin-bottom: 20px;">Firebase: Conectado</p>
-                <button onclick="testFirestore()" class="btn btn-primary" style="margin-top: 20px;">
-                    Testar Firestore
+    <!-- App Principal (escondido inicialmente) -->
+    <div id="app-screen" class="screen">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <button class="menu-btn" id="menu-btn">
+                    <i class="fas fa-bars"></i>
                 </button>
-            `;
-        });
+                <h1 class="page-title" id="page-title">Início</h1>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="notifications-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="header-btn" id="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </header>
         
-        // Login com Google
-        document.getElementById('google-login-btn').addEventListener('click', function() {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            alert('Login com Google funcionaria aqui!');
-        });
+        <!-- Menu Lateral -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <img src="" alt="Foto do perfil" class="user-avatar" id="user-avatar">
+                    <h3 id="user-name">Usuário</h3>
+                    <p id="user-email">usuario@email.com</p>
+                </div>
+                <button class="close-sidebar" id="close-sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="#home" class="menu-item active" data-page="home">
+                    <i class="fas fa-home"></i> Início
+                </a>
+                <a href="#contacts" class="menu-item" data-page="contacts">
+                    <i class="fas fa-users"></i> Contatos
+                </a>
+                <a href="#chat" class="menu-item" data-page="chat">
+                    <i class="fas fa-comments"></i> Chat
+                </a>
+                <a href="#calendar" class="menu-item" data-page="calendar">
+                    <i class="fas fa-calendar-alt"></i> Calendário
+                </a>
+                <a href="#albums" class="menu-item" data-page="albums">
+                    <i class="fas fa-images"></i> Álbuns
+                </a>
+                <a href="#tree" class="menu-item" data-page="tree">
+                    <i class="fas fa-tree"></i> Árvore Genealógica
+                </a>
+                <a href="#settings" class="menu-item" data-page="settings">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="btn btn-logout" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </div>
         
-        // Função de teste do Firestore
-        window.testFirestore = function() {
-            db.collection('test').add({
-                message: 'Teste do CronoZ App',
-                timestamp: new Date(),
-                url: window.location.href
-            })
-            .then(() => alert('✅ Dados salvos no Firestore!'))
-            .catch(error => alert('❌ Erro: ' + error.message));
-        };
-    </script>
+        <!-- Overlay do Menu -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Conteúdo Principal -->
+        <main class="app-content" id="app-content">
+            <!-- Páginas serão carregadas aqui -->
+            <div style="text-align: center; padding: 50px 20px;">
+                <h2>🎉 CronoZ Online!</h2>
+                <p>App funcionando com Firebase v12</p>
+                <button onclick="testarFirebase()" class="btn btn-primary" style="margin-top: 20px;">
+                    Testar Firebase
+                </button>
+            </div>
+        </main>
+        
+        <!-- Footer Navigation -->
+        <footer class="app-footer">
+            <button class="footer-btn active" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>Início</span>
+            </button>
+            <button class="footer-btn" data-page="contacts">
+                <i class="fas fa-users"></i>
+                <span>Contatos</span>
+            </button>
+            <button class="footer-btn" data-page="chat">
+                <i class="fas fa-comment"></i>
+                <span>Chat</span>
+            </button>
+            <button class="footer-btn" data-page="calendar">
+                <i class="fas fa-calendar"></i>
+                <span>Calendário</span>
+            </button>
+            <button class="footer-btn" data-page="tree">
+                <i class="fas fa-tree"></i>
+                <span>Árvore</span>
+            </button>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="script.js"></script>
 </body>
 </html>
