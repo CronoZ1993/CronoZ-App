@@ -1,3 +1,4 @@
+// TODO O CÓDIGO QUE EU MANDAR
 // script.js - CronoZ Firebase v12 CORRETO
 console.log('📱 CronoZ iniciando...');
 
