@@ -1,226 +1,189 @@
-// script.js - CronoZ SIMPLES para celular (Firebase v12 FIX)
+// script.js - CronoZ Firebase v12 CORRETO
+console.log('📱 CronoZ iniciando...');
 
-console.log('📱 CronoZ no celular iniciando...');
+let auth, db;
 
-// Importações adicionais para Firebase v12
-let db, auth, googleProvider;
-
-// Esperar Firebase carregar
-setTimeout(async () => {
-    try {
-        if (window.auth && window.db) {
-            console.log('✅ Firebase carregado!');
-            
-            // Configurar referências corretamente
-            auth = window.auth;
-            db = window.db;
-            googleProvider = window.googleProvider;
-            
-            // Verificar se já está logado
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    console.log('Usuário já logado:', user.email);
-                    mostrarApp(user);
-                } else {
-                    console.log('Nenhum usuário logado');
-                    iniciarApp();
-                }
-            });
-            
-        } else {
-            console.error('❌ Firebase não carregou');
-            mostrarErro();
-        }
-    } catch (error) {
-        console.error('Erro ao iniciar:', error);
+// Verificar quando Firebase carrega
+setTimeout(() => {
+    if (window.auth && window.db) {
+        console.log('✅ Firebase pronto');
+        auth = window.auth;
+        db = window.db;
+        iniciarApp();
+    } else {
+        console.error('❌ Firebase falhou');
         mostrarErro();
     }
-}, 2000);
+}, 1500);
 
-function iniciarApp() {
-    console.log('🎯 App iniciando...');
+async function iniciarApp() {
+    console.log('🎯 Configurando app...');
     
-    // Botão Entrar SIMPLES
+    // BOTÃO ENTRAR - CORRETO para Firebase v12
     const btnEntrar = document.getElementById('login-btn');
     if (btnEntrar) {
         btnEntrar.onclick = async () => {
-            console.log('Botão Entrar clicado');
+            console.log('👉 Tentando login...');
             
-            const email = document.getElementById('email')?.value || 'teste@cronoz.com';
-            const senha = document.getElementById('password')?.value || '123456';
+            const email = document.getElementById('email')?.value?.trim();
+            const senha = document.getElementById('password')?.value;
+            
+            // Validação simples
+            if (!email || !senha) {
+                alert('Preencha email e senha');
+                return;
+            }
             
             try {
-                // Mostrar loading
                 btnEntrar.innerHTML = '⏳ Entrando...';
                 btnEntrar.disabled = true;
                 
-                // FIREBASE V12 - Método correto
+                // ✅ CORRETO: Firebase v12 modular
                 const { signInWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js");
                 const userCred = await signInWithEmailAndPassword(auth, email, senha);
-                console.log('✅ Logado:', userCred.user.email);
                 
-                // Mostrar app
+                console.log('✅ Logado:', userCred.user.email);
                 mostrarApp(userCred.user);
                 
             } catch (erro) {
-                console.error('❌ Erro login:', erro.code, erro.message);
+                console.error('❌ Erro login:', erro.code);
                 
-                // Tentar criar conta se não existir
+                // Se usuário não existe, criar conta
                 if (erro.code === 'auth/user-not-found') {
-                    try {
-                        const { createUserWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js");
-                        const novaConta = await createUserWithEmailAndPassword(auth, email, senha);
-                        console.log('✅ Conta criada:', novaConta.user.email);
-                        mostrarApp(novaConta.user);
-                    } catch (erro2) {
-                        alert('Erro criar conta: ' + erro2.message);
+                    const criar = confirm('Conta não existe. Criar nova conta?');
+                    if (criar) {
+                        await criarConta(email, senha);
                     }
+                } else if (erro.code === 'auth/wrong-password') {
+                    alert('Senha incorreta');
                 } else {
                     alert('Erro: ' + erro.message);
                 }
-            } finally {
-                if (btnEntrar) {
-                    btnEntrar.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
-                    btnEntrar.disabled = false;
-                }
+                
+                btnEntrar.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+                btnEntrar.disabled = false;
             }
         };
     }
     
-    // Configurar navegação
-    configurarNavegacao();
-}
-
-function mostrarApp(usuario) {
-    console.log('Mostrando app para:', usuario.email);
-    
-    // Esconder login, mostrar app
-    document.getElementById('login-screen').style.display = 'none';
-    const appScreen = document.getElementById('app-screen');
-    appScreen.style.display = 'block';
-    
-    // Atualizar menu
-    if (document.getElementById('user-email')) {
-        document.getElementById('user-email').textContent = usuario.email;
-        document.getElementById('user-name').textContent = usuario.email.split('@')[0];
+    // BOTÃO GOOGLE (simples por enquanto)
+    const btnGoogle = document.getElementById('google-login-btn');
+    if (btnGoogle) {
+        btnGoogle.onclick = () => {
+            alert('Login Google em breve! Use email/senha por agora.');
+        };
     }
     
-    // Carregar página inicial
-    carregarPagina('home');
+    // BOTÃO CRIAR CONTA
+    const linkCriar = document.getElementById('register-link');
+    if (linkCriar) {
+        linkCriar.onclick = async (e) => {
+            e.preventDefault();
+            const email = prompt('Digite seu email:');
+            const senha = prompt('Digite uma senha (mínimo 6 caracteres):');
+            
+            if (email && senha && senha.length >= 6) {
+                await criarConta(email, senha);
+            } else {
+                alert('Email ou senha inválidos');
+            }
+        };
+    }
 }
 
-// FUNÇÃO TESTAR BANCO CORRIGIDA (Firebase v12)
-window.testarBanco = async () => {
+// FUNÇÃO CRIAR CONTA - CORRETA
+async function criarConta(email, senha) {
+    try {
+        // ✅ CORRETO: Firebase v12
+        const { createUserWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js");
+        const userCred = await createUserWithEmailAndPassword(auth, email, senha);
+        
+        alert('✅ Conta criada com sucesso!');
+        mostrarApp(userCred.user);
+        
+    } catch (erro) {
+        console.error('Erro criar conta:', erro);
+        alert('Erro ao criar: ' + erro.message);
+    }
+}
+
+// FUNÇÃO MOSTRAR APP
+function mostrarApp(usuario) {
+    console.log('👤 Mostrando app para:', usuario.email);
+    
+    // Trocar telas
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    
+    // Atualizar menu
+    document.getElementById('user-email').textContent = usuario.email;
+    document.getElementById('user-name').textContent = usuario.email.split('@')[0];
+    
+    // Conteúdo simples
+    document.getElementById('app-content').innerHTML = `
+        <div style="text-align: center; padding: 40px 20px;">
+            <h2>🎉 Bem-vindo, ${usuario.email.split('@')[0]}!</h2>
+            <p>Login realizado com sucesso!</p>
+            
+            <button onclick="testarFirestore()" class="btn" style="background: gold; margin: 15px;">
+                🔥 Testar Banco de Dados
+            </button>
+            
+            <button onclick="auth.signOut(); location.reload()" class="btn" style="background: #ff4444; color: white; margin: 15px;">
+                🚪 Sair do App
+            </button>
+        </div>
+    `;
+    
+    // Configurar botão Sair no menu
+    document.getElementById('logout-btn').onclick = () => {
+        auth.signOut();
+        location.reload();
+    };
+}
+
+// FUNÇÃO TESTAR FIRESTORE - CORRETA
+window.testarFirestore = async () => {
     try {
         const user = auth.currentUser;
         if (!user) {
-            alert('❌ Nenhum usuário logado');
+            alert('❌ Faça login primeiro');
             return;
         }
         
-        // FIREBASE V12 - Sintaxe correta
+        // ✅ CORRETO: Firebase v12 Firestore
         const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
         
-        await addDoc(collection(db, 'testes'), {
-            usuario: user.email,
-            data: new Date(),
-            mensagem: 'Teste do celular!',
-            plataforma: 'mobile',
-            uid: user.uid
+        await addDoc(collection(db, 'usuarios'), {
+            uid: user.uid,
+            email: user.email,
+            primeiroLogin: new Date(),
+            teste: 'App CronoZ funcionando!'
         });
         
         alert('✅ Dados salvos no Firestore!');
         console.log('Teste salvo com sucesso');
         
     } catch (erro) {
-        console.error('Erro ao salvar:', erro);
-        alert('❌ Erro: ' + erro.message);
+        console.error('Erro Firestore:', erro);
+        alert('❌ Erro ao salvar: ' + erro.message);
     }
 };
 
-// FUNÇÕES DE NAVEGAÇÃO
-function configurarNavegacao() {
-    // Botões do footer
-    document.querySelectorAll('.footer-btn').forEach(btn => {
-        btn.onclick = function() {
-            const pagina = this.getAttribute('data-page');
-            carregarPagina(pagina);
-            
-            // Ativar botão clicado
-            document.querySelectorAll('.footer-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Atualizar título
-            if (document.getElementById('page-title')) {
-                const titulos = {
-                    'home': 'Início',
-                    'contacts': 'Contatos',
-                    'chat': 'Chat',
-                    'calendar': 'Calendário',
-                    'tree': 'Árvore'
-                };
-                document.getElementById('page-title').textContent = titulos[pagina] || pagina;
-            }
-        };
-    });
-    
-    // Botão Sair
-    const btnSair = document.getElementById('logout-btn');
-    if (btnSair) {
-        btnSair.onclick = () => {
-            auth.signOut();
-            location.reload();
-        };
-    }
-}
-
-function carregarPagina(pagina) {
-    const conteudo = document.getElementById('app-content');
-    const conteudos = {
-        'home': `
-            <div class="page-content">
-                <h2>🎉 Olá ${auth.currentUser?.email?.split('@')[0] || 'Usuário'}!</h2>
-                <p>Bem-vindo ao CronoZ!</p>
-                
-                <div style="margin-top: 30px;">
-                    <button onclick="testarBanco()" class="btn btn-primary" style="margin: 10px;">
-                        🔥 Testar Firestore
-                    </button>
-                    
-                    <button onclick="sairApp()" class="btn btn-danger" style="margin: 10px;">
-                        🚪 Sair
-                    </button>
-                </div>
-            </div>
-        `,
-        'contacts': `<div class="page-content"><h2>📱 Contatos</h2><p>Em desenvolvimento...</p></div>`,
-        'chat': `<div class="page-content"><h2>💬 Chat</h2><p>Em desenvolvimento...</p></div>`,
-        'calendar': `<div class="page-content"><h2>📅 Calendário</h2><p>Em desenvolvimento...</p></div>`,
-        'tree': `<div class="page-content"><h2>🌳 Árvore Genealógica</h2><p>Em desenvolvimento...</p></div>`
-    };
-    
-    conteudo.innerHTML = conteudos[pagina] || conteudos['home'];
-}
-
-// Outras funções globais
-window.sairApp = () => {
-    auth.signOut();
-    location.reload();
-};
-
+// FUNÇÃO ERRO
 function mostrarErro() {
-    const loginScreen = document.getElementById('login-screen');
-    if (loginScreen) {
-        loginScreen.innerHTML = `
+    const loginDiv = document.getElementById('login-screen');
+    if (loginDiv) {
+        loginDiv.innerHTML = `
             <div style="padding: 50px; text-align: center;">
-                <h2 style="color: red;">⚠️ Problema no Firebase</h2>
-                <p>Recarregue a página</p>
-                <button onclick="location.reload()" class="btn btn-primary">
-                    🔄 Recarregar
+                <h2 style="color: #ff4444;">⚠️ Erro de Conexão</h2>
+                <p>Não foi possível conectar ao Firebase.</p>
+                <button onclick="location.reload()" class="btn" style="background: gold;">
+                    🔄 Tentar Novamente
                 </button>
             </div>
         `;
     }
 }
 
-console.log('✅ Script carregado, aguardando Firebase...');
+console.log('✅ Script carregado. Aguardando Firebase...');
