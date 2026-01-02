@@ -9,38 +9,46 @@
     <link rel="stylesheet" href="style.css">
     
     <!-- Firebase SDKs (NOVO FORMATO MODULAR) -->
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-        import { getStorage } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
-        
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
-            authDomain: "cronoz-app-2026.firebaseapp.com",
-            projectId: "cronoz-app-2026",
-            storageBucket: "cronoz-app-2026.firebasestorage.app",
-            messagingSenderId: "961118541246",
-            appId: "1:961118541246:web:5b8afd85ecfa41969795ef",
-            measurementId: "G-5MKXDX2HR6"
-        };
+    <!-- Firebase SDKs (NOVO FORMATO MODULAR) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+    
+    // SUA CONFIGURAÇÃO ORIGINAL (que tem os domínios permitidos)
+    const firebaseConfig = {
+        apiKey: "AIzaSyD_Tt4Ly-EhglK6tKxLQOrV-Ml6dLkV1Sg",
+        authDomain: "cronoz-app-2026.firebaseapp.com",
+        projectId: "cronoz-app-2026",
+        storageBucket: "cronoz-app-2026.appspot.com",
+        messagingSenderId: "161496298233",
+        appId: "1:161496298233:web:7bfa58667340f0ae5418fe",
+        measurementId: "G-TPJQZV0Z8X"
+    };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        
-        // Exportar para uso global
-        window.firebaseApp = app;
-        window.auth = getAuth(app);
-        window.db = getFirestore(app);
-        window.storage = getStorage(app);
-        window.googleProvider = new GoogleAuthProvider();
-        
-        console.log('✅ Firebase v12 inicializado!');
-    </script>
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    
+    // Exportar para uso global
+    window.firebaseApp = app;
+    window.auth = getAuth(app);
+    window.db = getFirestore(app);
+    window.storage = getStorage(app);
+    window.googleProvider = new GoogleAuthProvider();
+    
+    console.log('✅ Firebase v12 inicializado com API KEY CORRETA!');
+    
+    // Teste imediato
+    setTimeout(() => {
+        if (window.auth) {
+            console.log('✅ Auth disponível');
+            alert('Firebase OK! API Key correta.');
+        }
+    }, 1000);
+</script>
 </head>
 <body>
     <!-- Tela de Login -->
