@@ -199,3 +199,180 @@ body {
 .sidebar-overlay.active {
     display: block;
 }
+/* ======================
+   VARIÁVEIS DE TEMA
+   ====================== */
+:root {
+    --cor-primaria: #FFD700; /* Dourado padrão */
+    --cor-fundo: #ffffff;
+    --cor-texto: #333333;
+    --cor-borda: #e0e0e0;
+    --cor-card: #f8f9fa;
+}
+
+[data-tema="escuro"] {
+    --cor-fundo: #121212;
+    --cor-texto: #ffffff;
+    --cor-borda: #333333;
+    --cor-card: #1e1e1e;
+}
+
+[data-tema="claro"] {
+    --cor-fundo: #ffffff;
+    --cor-texto: #333333;
+    --cor-borda: #e0e0e0;
+    --cor-card: #f8f9fa;
+}
+
+/* Aplicar cores */
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ======================
+   PERFIL DO USUÁRIO
+   ====================== */
+.profile-header {
+    text-align: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.profile-photo-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+}
+
+.profile-photo {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--cor-primaria);
+}
+
+.btn-photo-edit {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: var(--cor-primaria);
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.profile-section {
+    background: var(--cor-card);
+    margin: 15px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--cor-borda);
+}
+
+.profile-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ======================
+   SELEÇÃO DE TEMA
+   ====================== */
+.theme-selector {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.theme-option.active {
+    background: var(--cor-primaria);
+    color: white;
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 2px solid transparent;
+}
+
+.theme-preview.sistema {
+    background: linear-gradient(45deg, #121212 50%, #ffffff 50%);
+}
+
+.theme-preview.claro {
+    background: #ffffff;
+    border-color: #cccccc;
+}
+
+.theme-preview.escuro {
+    background: #121212;
+}
+
+/* ======================
+   FORMULÁRIOS
+   ====================== */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+/* ======================
+   BOTÕES COM COR PRIMÁRIA
+   ====================== */
+.btn-primary {
+    background-color: var(--cor-primaria) !important;
+    border-color: var(--cor-primaria) !important;
+}
+
+/* Color Picker */
+.color-picker {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#input-cor {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
