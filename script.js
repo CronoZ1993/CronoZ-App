@@ -1,15 +1,15 @@
-// TODO O CÓDIGO QUE EU MANDAR
-// script.js - CronoZ Firebase v12 CORRETO
+// script.js - CronoZ COMPLETO com Perfil, Temas e Backup
 console.log('📱 CronoZ iniciando...');
 
-let auth, db;
+let auth, db, storage;
 
 // Verificar quando Firebase carrega
 setTimeout(() => {
-    if (window.auth && window.db) {
+    if (window.auth && window.db && window.storage) {
         console.log('✅ Firebase pronto');
         auth = window.auth;
         db = window.db;
+        storage = window.storage;
         iniciarApp();
     } else {
         console.error('❌ Firebase falhou');
@@ -20,36 +20,43 @@ setTimeout(() => {
 async function iniciarApp() {
     console.log('🎯 Configurando app...');
     
-    // BOTÃO ENTRAR - CORRETO para Firebase v12
+    // Verificar se já está logado
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            console.log('Usuário já logado:', user.email);
+            mostrarApp(user);
+        } else {
+            configurarLogin();
+        }
+    });
+    
+    configurarNavegacao();
+}
+
+function configurarLogin() {
+    // BOTÃO ENTRAR
     const btnEntrar = document.getElementById('login-btn');
     if (btnEntrar) {
         btnEntrar.onclick = async () => {
-            console.log('👉 Tentando login...');
-            
-            const email = document.getElementById('email')?.value?.trim();
-            const senha = document.getElementById('password')?.value;
-            
-            // Validação simples
-            if (!email || !senha) {
-                alert('Preencha email e senha');
-                return;
-            }
+            const email = document.getElementById('email')?.value?.trim() || 'teste@cronoz.com';
+            const senha = document.getElementById('password')?.value || '123456';
             
             try {
                 btnEntrar.innerHTML = '⏳ Entrando...';
                 btnEntrar.disabled = true;
                 
-                // ✅ CORRETO: Firebase v12 modular
                 const { signInWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js");
                 const userCred = await signInWithEmailAndPassword(auth, email, senha);
                 
                 console.log('✅ Logado:', userCred.user.email);
+                
+                // Criar estrutura se for novo usuário
+                await criarEstruturaUsuario(userCred.user);
                 mostrarApp(userCred.user);
                 
             } catch (erro) {
                 console.error('❌ Erro login:', erro.code);
                 
-                // Se usuário não existe, criar conta
                 if (erro.code === 'auth/user-not-found') {
                     const criar = confirm('Conta não existe. Criar nova conta?');
                     if (criar) {
@@ -67,7 +74,7 @@ async function iniciarApp() {
         };
     }
     
-    // BOTÃO GOOGLE (simples por enquanto)
+    // BOTÃO GOOGLE
     const btnGoogle = document.getElementById('google-login-btn');
     if (btnGoogle) {
         btnGoogle.onclick = () => {
@@ -92,12 +99,13 @@ async function iniciarApp() {
     }
 }
 
-// FUNÇÃO CRIAR CONTA - CORRETA
 async function criarConta(email, senha) {
     try {
-        // ✅ CORRETO: Firebase v12
         const { createUserWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js");
         const userCred = await createUserWithEmailAndPassword(auth, email, senha);
+        
+        // Criar estrutura inicial
+        await criarEstruturaUsuario(userCred.user);
         
         alert('✅ Conta criada com sucesso!');
         mostrarApp(userCred.user);
@@ -108,107 +116,25 @@ async function criarConta(email, senha) {
     }
 }
 
-// FUNÇÃO MOSTRAR APP
-function mostrarApp(usuario) {
-    console.log('👤 Mostrando app para:', usuario.email);
-    
-    // Trocar telas
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
-    
-    // Atualizar menu
-    document.getElementById('user-email').textContent = usuario.email;
-    document.getElementById('user-name').textContent = usuario.email.split('@')[0];
-    
-    // Conteúdo simples
-    document.getElementById('app-content').innerHTML = `
-        <div style="text-align: center; padding: 40px 20px;">
-            <h2>🎉 Bem-vindo, ${usuario.email.split('@')[0]}!</h2>
-            <p>Login realizado com sucesso!</p>
-            
-            <button onclick="testarFirestore()" class="btn" style="background: gold; margin: 15px;">
-                🔥 Testar Banco de Dados
-            </button>
-            
-            <button onclick="auth.signOut(); location.reload()" class="btn" style="background: #ff4444; color: white; margin: 15px;">
-                🚪 Sair do App
-            </button>
-        </div>
-    `;
-    
-    // Configurar botão Sair no menu
-    document.getElementById('logout-btn').onclick = () => {
-        auth.signOut();
-        location.reload();
-    };
-}
-
-// FUNÇÃO TESTAR FIRESTORE - CORRETA
-window.testarFirestore = async () => {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('❌ Faça login primeiro');
-            return;
-        }
-        
-        // ✅ CORRETO: Firebase v12 Firestore
-        const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
-        
-        await addDoc(collection(db, 'usuarios'), {
-            uid: user.uid,
-            email: user.email,
-            primeiroLogin: new Date(),
-            teste: 'App CronoZ funcionando!'
-        });
-        
-        alert('✅ Dados salvos no Firestore!');
-        console.log('Teste salvo com sucesso');
-        
-    } catch (erro) {
-        console.error('Erro Firestore:', erro);
-        alert('❌ Erro ao salvar: ' + erro.message);
-    }
-};
-
-// FUNÇÃO ERRO
-function mostrarErro() {
-    const loginDiv = document.getElementById('login-screen');
-    if (loginDiv) {
-        loginDiv.innerHTML = `
-            <div style="padding: 50px; text-align: center;">
-                <h2 style="color: #ff4444;">⚠️ Erro de Conexão</h2>
-                <p>Não foi possível conectar ao Firebase.</p>
-                <button onclick="location.reload()" class="btn" style="background: gold;">
-                    🔄 Tentar Novamente
-                </button>
-            </div>
-        `;
-    }
-}
-
-console.log('✅ Script carregado. Aguardando Firebase...');
 // ======================
-// CONFIGURAÇÃO FIRESTORE
+// ESTRUTURA FIRESTORE
 // ======================
 
 async function criarEstruturaUsuario(user) {
     try {
         console.log('📁 Criando estrutura para:', user.email);
         
-        // Referência ao Firestore (Firebase v12 correto)
-        const { doc, setDoc, collection } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+        const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
         
-        // Dados básicos do usuário
         const userData = {
             uid: user.uid,
             email: user.email,
-            nome: user.email.split('@')[0], // Nome padrão
+            nome: user.email.split('@')[0],
             fotoPerfil: '',
             dataNascimento: null,
             telefone: '',
-            tema: 'sistema', // 'claro', 'escuro', 'sistema'
-            corPrimaria: '#FFD700', // Dourado padrão
+            tema: 'sistema',
+            corPrimaria: '#FFD700',
             configuracoes: {
                 notificacoes: true,
                 backupAuto: false,
@@ -218,11 +144,10 @@ async function criarEstruturaUsuario(user) {
             updatedAt: new Date()
         };
         
-        // Salvar no Firestore
         const userRef = doc(db, 'usuarios', user.uid);
         await setDoc(userRef, userData);
         
-        console.log('✅ Estrutura criada com sucesso');
+        console.log('✅ Estrutura criada');
         return true;
         
     } catch (error) {
@@ -232,7 +157,7 @@ async function criarEstruturaUsuario(user) {
 }
 
 // ======================
-// PERFIL DO USUÁRIO
+// TELA DE PERFIL
 // ======================
 
 function criarTelaPerfil() {
@@ -240,7 +165,9 @@ function criarTelaPerfil() {
     <div class="page-content">
         <div class="profile-header">
             <div class="profile-photo-container">
-                <img src="" alt="Foto" id="profile-photo" class="profile-photo">
+                <div class="profile-photo" id="profile-photo">
+                    <i class="fas fa-user"></i>
+                </div>
                 <button onclick="trocarFoto()" class="btn-photo-edit">
                     <i class="fas fa-camera"></i>
                 </button>
@@ -290,19 +217,21 @@ function criarTelaPerfil() {
                 </div>
             </div>
             
-            <div class="color-picker" style="margin-top: 20px;">
+            <div class="color-picker">
                 <label>Cor Principal</label>
-                <input type="color" id="input-cor" value="#FFD700" onchange="mudarCor(this.value)">
-                <span id="cor-texto">#FFD700</span>
+                <div class="color-input-group">
+                    <input type="color" id="input-cor" value="#FFD700" onchange="mudarCor(this.value)">
+                    <span id="cor-texto">#FFD700</span>
+                </div>
             </div>
         </div>
         
         <div class="profile-section">
             <h3><i class="fas fa-shield-alt"></i> Segurança</h3>
-            <button onclick="fazerBackup()" class="btn" style="background: #4CAF50; color: white;">
+            <button onclick="fazerBackup()" class="btn-backup">
                 <i class="fas fa-cloud-upload-alt"></i> Fazer Backup Agora
             </button>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+            <p class="backup-info">
                 Último backup: <span id="last-backup">Nunca</span>
             </p>
         </div>
@@ -314,7 +243,6 @@ function criarTelaPerfil() {
 // FUNÇÕES DO PERFIL
 // ======================
 
-// Carregar dados do usuário
 async function carregarPerfil() {
     try {
         const user = auth.currentUser;
@@ -328,31 +256,34 @@ async function carregarPerfil() {
             const data = userDoc.data();
             
             // Preencher formulário
-            document.getElementById('input-nome').value = data.nome || '';
-            document.getElementById('input-telefone').value = data.telefone || '';
-            
-            if (data.dataNascimento) {
-                const date = data.dataNascimento.toDate();
-                document.getElementById('input-nascimento').value = date.toISOString().split('T')[0];
-            }
-            
-            document.getElementById('profile-name').textContent = data.nome || user.email.split('@')[0];
-            document.getElementById('profile-email').textContent = user.email;
-            
-            // Aplicar tema
-            if (data.tema) {
-                mudarTema(data.tema, false); // false = não salva
-            }
-            
-            if (data.corPrimaria) {
-                document.getElementById('input-cor').value = data.corPrimaria;
-                document.getElementById('cor-texto').textContent = data.corPrimaria;
+            if (document.getElementById('input-nome')) {
+                document.getElementById('input-nome').value = data.nome || '';
+                document.getElementById('input-telefone').value = data.telefone || '';
+                
+                if (data.dataNascimento) {
+                    const date = data.dataNascimento.toDate();
+                    document.getElementById('input-nascimento').value = date.toISOString().split('T')[0];
+                }
+                
+                document.getElementById('profile-name').textContent = data.nome || user.email.split('@')[0];
+                document.getElementById('profile-email').textContent = user.email;
+                
+                // Aplicar tema
+                if (data.tema) {
+                    aplicarTema(data.tema);
+                }
+                
+                if (data.corPrimaria) {
+                    document.getElementById('input-cor').value = data.corPrimaria;
+                    document.getElementById('cor-texto').textContent = data.corPrimaria;
+                    document.documentElement.style.setProperty('--cor-primaria', data.corPrimaria);
+                }
             }
             
         } else {
-            // Primeiro acesso - criar estrutura
+            // Primeiro acesso
             await criarEstruturaUsuario(user);
-            carregarPerfil(); // Recarregar
+            setTimeout(() => carregarPerfil(), 1000);
         }
         
     } catch (error) {
@@ -360,7 +291,6 @@ async function carregarPerfil() {
     }
 }
 
-// Salvar perfil
 async function salvarPerfil() {
     try {
         const user = auth.currentUser;
@@ -379,29 +309,26 @@ async function salvarPerfil() {
         const userRef = doc(db, 'usuarios', user.uid);
         await updateDoc(userRef, dados);
         
-        // Atualizar display
         document.getElementById('profile-name').textContent = dados.nome || user.email.split('@')[0];
-        
-        alert('✅ Perfil salvo com sucesso!');
+        mostrarNotificacao('✅ Perfil salvo com sucesso!');
         
     } catch (error) {
         console.error('Erro ao salvar:', error);
-        alert('❌ Erro ao salvar: ' + error.message);
+        mostrarNotificacao('❌ Erro ao salvar: ' + error.message);
     }
 }
 
-// Mudar tema
-async function mudarTema(tema, salvar = true) {
-    // Aplicar visualmente
+function aplicarTema(tema) {
     document.body.setAttribute('data-tema', tema);
-    
-    // Marcar opção ativa
     document.querySelectorAll('.theme-option').forEach(el => {
         el.classList.toggle('active', el.getAttribute('data-theme') === tema);
     });
+}
+
+async function mudarTema(tema) {
+    aplicarTema(tema);
     
-    // Salvar no Firestore
-    if (salvar && auth.currentUser) {
+    if (auth.currentUser) {
         try {
             const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
             const userRef = doc(db, 'usuarios', auth.currentUser.uid);
@@ -415,7 +342,6 @@ async function mudarTema(tema, salvar = true) {
     }
 }
 
-// Mudar cor
 async function mudarCor(cor) {
     document.documentElement.style.setProperty('--cor-primaria', cor);
     document.getElementById('cor-texto').textContent = cor;
@@ -434,63 +360,113 @@ async function mudarCor(cor) {
     }
 }
 
-// Backup manual
 async function fazerBackup() {
     try {
         const user = auth.currentUser;
         if (!user) return;
         
-        // Obter todos os dados do usuário
         const { doc, getDoc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
         
         const userRef = doc(db, 'usuarios', user.uid);
         const userData = await getDoc(userRef);
         
-        const contatosRef = collection(db, 'usuarios', user.uid, 'contatos');
-        const contatosSnapshot = await getDocs(contatosRef);
-        const contatos = contatosSnapshot.docs.map(doc => doc.data());
-        
-        // Criar objeto de backup
         const backup = {
             usuario: userData.data(),
-            contatos: contatos,
             dataBackup: new Date(),
             versao: '1.0'
         };
         
-        // Salvar no Storage (Firebase v12)
         const { ref, uploadString } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js");
         const storageRef = ref(storage, `backups/${user.uid}/${Date.now()}.json`);
         
         await uploadString(storageRef, JSON.stringify(backup, null, 2));
         
-        // Atualizar UI
         document.getElementById('last-backup').textContent = new Date().toLocaleString();
-        
-        alert('✅ Backup realizado com sucesso!');
+        mostrarNotificacao('✅ Backup realizado com sucesso!');
         
     } catch (error) {
         console.error('Erro no backup:', error);
-        alert('❌ Erro no backup: ' + error.message);
+        mostrarNotificacao('❌ Erro no backup: ' + error.message);
     }
 }
 
+function trocarFoto() {
+    mostrarNotificacao('📷 Upload de foto em breve!');
+}
+
+function mostrarNotificacao(mensagem) {
+    // Criar notificação temporária
+    const notif = document.createElement('div');
+    notif.className = 'notification';
+    notif.textContent = mensagem;
+    notif.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--cor-primaria);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notif.remove(), 300);
+    }, 3000);
+}
+
 // ======================
-// INTEGRAÇÃO COM APP
+// NAVEGAÇÃO
 // ======================
 
-// Modificar a função carregarPagina() do script.js original
+function configurarNavegacao() {
+    // Botões do footer
+    document.querySelectorAll('.footer-btn').forEach(btn => {
+        btn.onclick = function() {
+            const pagina = this.getAttribute('data-page');
+            carregarPagina(pagina);
+            
+            document.querySelectorAll('.footer-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            if (document.getElementById('page-title')) {
+                const titulos = {
+                    'home': 'Início',
+                    'contacts': 'Contatos',
+                    'chat': 'Chat',
+                    'calendar': 'Calendário',
+                    'tree': 'Árvore'
+                };
+                document.getElementById('page-title').textContent = titulos[pagina] || pagina;
+            }
+        };
+    });
+    
+    // Botão Sair
+    const btnSair = document.getElementById('logout-btn');
+    if (btnSair) {
+        btnSair.onclick = () => {
+            auth.signOut();
+            location.reload();
+        };
+    }
+}
+
 function carregarPagina(pagina) {
     const conteudo = document.getElementById('app-content');
     
     if (pagina === 'home') {
         conteudo.innerHTML = criarTelaPerfil();
-        carregarPerfil(); // Carregar dados
+        setTimeout(() => carregarPerfil(), 100);
     } else if (pagina === 'settings') {
-        conteudo.innerHTML = criarTelaPerfil(); // Configurações também usa perfil
-        carregarPerfil();
+        conteudo.innerHTML = criarTelaPerfil();
+        setTimeout(() => carregarPerfil(), 100);
     } else {
-        // Outras páginas (manter original)
         const conteudos = {
             'contacts': `<div class="page-content"><h2>📇 Contatos</h2><p>Em breve...</p></div>`,
             'chat': `<div class="page-content"><h2>💬 Chat</h2><p>Em breve...</p></div>`,
@@ -500,3 +476,38 @@ function carregarPagina(pagina) {
         conteudo.innerHTML = conteudos[pagina] || conteudos['home'];
     }
 }
+
+// ======================
+// FUNÇÃO PRINCIPAL
+// ======================
+
+function mostrarApp(usuario) {
+    console.log('👤 Mostrando app para:', usuario.email);
+    
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    
+    if (document.getElementById('user-email')) {
+        document.getElementById('user-email').textContent = usuario.email;
+        document.getElementById('user-name').textContent = usuario.email.split('@')[0];
+    }
+    
+    carregarPagina('home');
+}
+
+function mostrarErro() {
+    const loginDiv = document.getElementById('login-screen');
+    if (loginDiv) {
+        loginDiv.innerHTML = `
+            <div style="padding: 50px; text-align: center;">
+                <h2 style="color: #ff4444;">⚠️ Erro de Conexão</h2>
+                <p>Não foi possível conectar ao Firebase.</p>
+                <button onclick="location.reload()" class="btn" style="background: gold;">
+                    🔄 Tentar Novamente
+                </button>
+            </div>
+        `;
+    }
+}
+
+console.log('✅ Script CronoZ carregado');
