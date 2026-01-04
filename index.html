@@ -8,15 +8,12 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
     
-    <!-- Firebase SDKs CORRETO -->
     <script type="module">
-        // Importar Firebase v12
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
         import { getStorage } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
-        
-        // SUA CONFIGURAÇÃO CORRETA
+
         const firebaseConfig = {
             apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
             authDomain: "cronoz-app-2026.firebaseapp.com",
@@ -27,49 +24,47 @@
             measurementId: "G-5MKXDX2HR6"
         };
 
-        // Inicializar Firebase
         try {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
             const storage = getStorage(app);
             const googleProvider = new GoogleAuthProvider();
-            
-            // Tornar global
+
+            // Disponibiliza as instâncias globalmente para outros scripts (contacts.js, etc)
             window.firebaseApp = app;
             window.auth = auth;
             window.db = db;
             window.storage = storage;
             window.googleProvider = googleProvider;
             
-            console.log('✅ Firebase inicializado!');
-            console.log('Chave:', firebaseConfig.apiKey.substring(0, 20) + '...');
-            
-            // Teste automático
-            setTimeout(() => {
-                if (window.auth) {
-                    console.log('✅ Auth disponível');
-                    // Verificar se já está logado
-                    auth.onAuthStateChanged(user => {
-                        if (user) {
-                            console.log('Usuário já logado:', user.email);
-                            // Auto-login
-                            document.getElementById('login-screen').style.display = 'none';
-                            document.getElementById('app-screen').style.display = 'block';
-                        }
-                    });
+            console.log('✅ CronoZ: Firebase Inicializado');
+
+            // Monitor de autenticação para troca de telas
+            onAuthStateChanged(auth, user => {
+                const loginScreen = document.getElementById('login-screen');
+                const appScreen = document.getElementById('app-screen');
+                
+                if (user) {
+                    console.log('Usuário logado:', user.email);
+                    loginScreen.style.display = 'none';
+                    appScreen.style.display = 'block';
+                    // Dispara o carregamento inicial de dados se a função existir
+                    if (window.carregarContatos) window.carregarContatos();
+                } else {
+                    loginScreen.style.display = 'flex';
+                    appScreen.style.display = 'none';
                 }
-            }, 1000);
-            
+            });
         } catch (error) {
-            console.error('❌ Erro Firebase:', error);
-            alert('ERRO FIREBASE: ' + error.message);
+            console.error('❌ Erro Crítico Firebase:', error);
+            alert('Erro ao conectar com o servidor CronoZ: ' + error.message);
         }
     </script>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="login-screen" class="screen active">
+
+    <div id="login-screen" class="screen">
         <div class="login-container">
             <div class="logo-section">
                 <div class="logo-animation">
@@ -83,22 +78,22 @@
             <div class="login-form">
                 <div class="form-group">
                     <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
-                    <input type="email" id="email" placeholder="seu@email.com" autocomplete="email" value="teste@cronoz.com">
+                    <input type="email" id="email" placeholder="seu@email.com" value="teste@cronoz.com">
                 </div>
                 
                 <div class="form-group">
                     <label for="password"><i class="fas fa-lock"></i> Senha</label>
-                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" value="123456">
-                    <button class="toggle-password" type="button"><i class="fas fa-eye"></i></button>
+                    <div class="input-with-icon">
+                        <input type="password" id="password" placeholder="••••••••" value="123456">
+                        <button class="toggle-password" type="button"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
                 
                 <button id="login-btn" class="btn btn-primary">
                     <i class="fas fa-sign-in-alt"></i> Entrar
                 </button>
                 
-                <div class="divider">
-                    <span>ou</span>
-                </div>
+                <div class="divider"><span>ou</span></div>
                 
                 <button id="google-login-btn" class="btn btn-google">
                     <i class="fab fa-google"></i> Continuar com Google
@@ -109,20 +104,13 @@
                     <a href="#" id="register-link">Criar conta</a>
                 </div>
             </div>
-            
-            <div class="login-footer">
-                <p>© 2024 CronoZ. Todos os direitos reservados.</p>
-            </div>
         </div>
     </div>
     
-    <!-- App Principal -->
     <div id="app-screen" class="screen" style="display: none;">
         <header class="app-header">
             <div class="header-left">
-                <button class="menu-btn" id="menu-btn">
-                    <i class="fas fa-bars"></i>
-                </button>
+                <button class="menu-btn" id="menu-btn"><i class="fas fa-bars"></i></button>
                 <h1 class="page-title" id="page-title">Início</h1>
             </div>
             <div class="header-right">
@@ -130,122 +118,73 @@
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge">3</span>
                 </button>
-                <button class="header-btn" id="search-btn">
-                    <i class="fas fa-search"></i>
-                </button>
             </div>
         </header>
         
-        <!-- Menu Lateral -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="user-profile">
-                    <img src="" alt="Foto do perfil" class="user-avatar" id="user-avatar">
-                    <h3 id="user-name">Usuário</h3>
-                    <p id="user-email">usuario@email.com</p>
+                    <div class="avatar-container">
+                        <img src="" alt="Perfil" class="user-avatar" id="user-avatar">
+                    </div>
+                    <h3 id="user-name">Carregando...</h3>
+                    <p id="user-email">...</p>
                 </div>
-                <button class="close-sidebar" id="close-sidebar">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button class="close-sidebar" id="close-sidebar"><i class="fas fa-times"></i></button>
             </div>
             
             <nav class="sidebar-menu">
-                <a href="#home" class="menu-item active" data-page="home">
-                    <i class="fas fa-home"></i> Início
-                </a>
-                <a href="#contacts" class="menu-item" data-page="contacts">
-                    <i class="fas fa-users"></i> Contatos
-                </a>
-                <a href="#chat" class="menu-item" data-page="chat">
-                    <i class="fas fa-comments"></i> Chat
-                </a>
-                <a href="#calendar" class="menu-item" data-page="calendar">
-                    <i class="fas fa-calendar-alt"></i> Calendário
-                </a>
-                <a href="#albums" class="menu-item" data-page="albums">
-                    <i class="fas fa-images"></i> Álbuns
-                </a>
-                <a href="#tree" class="menu-item" data-page="tree">
-                    <i class="fas fa-tree"></i> Árvore Genealógica
-                </a>
-                <a href="#settings" class="menu-item" data-page="settings">
-                    <i class="fas fa-cog"></i> Configurações
-                </a>
+                <a href="#" class="menu-item active" data-page="home"><i class="fas fa-home"></i> Início</a>
+                <a href="#" class="menu-item" data-page="contacts"><i class="fas fa-users"></i> Contatos</a>
+                <a href="#" class="menu-item" data-page="chat"><i class="fas fa-comments"></i> Chat</a>
+                <a href="#" class="menu-item" data-page="calendar"><i class="fas fa-calendar-alt"></i> Calendário</a>
+                <a href="#" class="menu-item" data-page="tree"><i class="fas fa-tree"></i> Árvore Genealógica</a>
+                <a href="#" class="menu-item" data-page="settings"><i class="fas fa-cog"></i> Configurações</a>
             </nav>
             
             <div class="sidebar-footer">
-                <button class="btn btn-logout" id="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Sair
-                </button>
+                <button class="btn btn-logout" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</button>
             </div>
         </div>
         
-        <!-- Overlay do Menu -->
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
         
-        <!-- Conteúdo Principal -->
         <main class="app-content" id="app-content">
-            <div style="text-align: center; padding: 50px 20px;">
-                <h2>🎉 CronoZ Online!</h2>
-                <p>App funcionando com Firebase v12</p>
-                <button onclick="testarFirebase()" class="btn btn-primary" style="margin-top: 20px;">
-                    Testar Conexão Firebase
-                </button>
+            <div id="home-content">
+                <div class="welcome-card tray-style">
+                    <h2>🎉 Bem-vindo ao CronoZ!</h2>
+                    <p>Sincronizando seus momentos com o Firebase.</p>
+                </div>
             </div>
         </main>
         
-        <!-- Footer Navigation -->
         <footer class="app-footer">
             <button class="footer-btn active" data-page="home">
-                <i class="fas fa-home"></i>
-                <span>Início</span>
+                <i class="fas fa-home"></i><span>Início</span>
             </button>
             <button class="footer-btn" data-page="contacts">
-                <i class="fas fa-users"></i>
-                <span>Contatos</span>
+                <i class="fas fa-users"></i><span>Contatos</span>
             </button>
             <button class="footer-btn" data-page="chat">
-                <i class="fas fa-comment"></i>
-                <span>Chat</span>
+                <i class="fas fa-comment"></i><span>Chat</span>
             </button>
             <button class="footer-btn" data-page="calendar">
-                <i class="fas fa-calendar"></i>
-                <span>Calendário</span>
+                <i class="fas fa-calendar"></i><span>Calendário</span>
             </button>
             <button class="footer-btn" data-page="tree">
-                <i class="fas fa-tree"></i>
-                <span>Árvore</span>
+                <i class="fas fa-tree"></i><span>Árvore</span>
             </button>
         </footer>
     </div>
     
-    <!-- Scripts -->
-    <script src="script.js"></script>
-    
-    <!-- Modal de loading -->
-    <div id="loading-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 30px; border-radius: 15px; text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 15px;">
-                <i class="fas fa-spinner fa-spin"></i>
-            </div>
-            <p id="loading-text">Carregando...</p>
+    <div id="loading-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <i class="fas fa-spinner fa-spin loader-icon"></i>
+            <p id="loading-text">Sincronizando...</p>
         </div>
     </div>
-    
-    <script>
-        // Função global para testar
-        window.testarFirebase = function() {
-            if (window.auth && window.db) {
-                alert('✅ Firebase OK!\nAuth: ' + (window.auth ? 'Sim' : 'Não') + 
-                      '\nFirestore: ' + (window.db ? 'Sim' : 'Não'));
-            } else {
-                alert('❌ Firebase não carregou');
-            }
-        };
-    </script>
-    
-<!-- Sistema de Contatos -->
-<script src="contacts.js"></script>
-    
+
+    <script src="script.js"></script>
+    <script src="contacts.js"></script>
 </body>
 </html>
