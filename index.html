@@ -16,13 +16,11 @@
     
     <!-- Firebase v9 (Modular) -->
     <script type="module">
-        // Import Firebase v9 modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        import { getAuth, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getStorage } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
 
-        // Configuração do Firebase (DO SEU CONSOLE)
         const firebaseConfig = {
             apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
             authDomain: "cronoz-app-2026.firebaseapp.com",
@@ -34,76 +32,67 @@
         };
 
         try {
-            // Initialize Firebase
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
             const storage = getStorage(app);
             const googleProvider = new GoogleAuthProvider();
 
-            // Make available globally
+            // Disponibilizar globalmente
             window.auth = auth;
             window.db = db;
             window.storage = storage;
             window.googleProvider = googleProvider;
-            
-            // Export functions for global use
-            window.firebaseFunctions = {
-                signInWithEmailAndPassword,
-                createUserWithEmailAndPassword,
-                signInWithPopup,
-                signOut,
-                doc,
-                setDoc,
-                getDoc,
-                updateDoc,
-                collection,
-                addDoc,
-                getDocs,
-                query,
-                where,
-                ref,
-                uploadBytes,
-                getDownloadURL
-            };
 
             console.log('✅ Firebase v9 inicializado com sucesso!');
 
-            // Monitor authentication state
+            // Monitorar autenticação
             onAuthStateChanged(auth, (user) => {
+                console.log('🔄 Estado de autenticação alterado:', user ? 'Logado' : 'Deslogado');
+                
                 if (user) {
                     console.log('👤 Usuário logado:', user.email);
-                    showAppScreen();
+                    
+                    // Definir currentUser globalmente
+                    window.currentUser = user;
+                    
+                    // Mostrar tela do app
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('app-screen').style.display = 'block';
+                    document.body.classList.add('app-loaded');
+                    
+                    // Inicializar app após 100ms para garantir DOM
+                    setTimeout(() => {
+                        if (window.initApp) {
+                            window.initApp();
+                        } else {
+                            console.error('❌ initApp não encontrado');
+                            // Forçar recarregamento do script
+                            loadScript('script.js', () => {
+                                if (window.initApp) {
+                                    window.initApp();
+                                }
+                            });
+                        }
+                    }, 100);
+                    
                 } else {
                     console.log('👤 Nenhum usuário logado');
-                    showLoginScreen();
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('app-screen').style.display = 'none';
+                    document.body.classList.remove('app-loaded');
                 }
             });
 
         } catch (error) {
             console.error('❌ Erro ao inicializar Firebase:', error);
-            document.getElementById('login-screen').innerHTML = `
-                <div class="error-overlay">
-                    <div class="error-content">
-                        <h3>❌ Erro de Conexão</h3>
-                        <p>Não foi possível conectar ao servidor Firebase.</p>
-                        <p><small>${error.message}</small></p>
-                        <button onclick="location.reload()" class="btn primary">Tentar Novamente</button>
-                    </div>
-                </div>
-            `;
         }
 
-        function showAppScreen() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'block';
-            document.body.classList.add('app-loaded');
-        }
-
-        function showLoginScreen() {
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('app-screen').style.display = 'none';
-            document.body.classList.remove('app-loaded');
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            document.head.appendChild(script);
         }
     </script>
 </head>
@@ -154,7 +143,7 @@
                     </div>
                 </div>
                 
-                <div id="login-error" class="error-message" style="display: none;"></div>
+                <div id="login-error" class="error-message" style="display: none; color: red; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 5px; margin-bottom: 15px;"></div>
                 
                 <div class="login-actions">
                     <button id="login-btn" class="btn primary">
@@ -172,16 +161,12 @@
                     <button id="register-btn" class="btn outline">
                         <i class="fas fa-user-plus"></i> Criar Conta
                     </button>
-                    
-                    <div class="login-links">
-                        <a href="#" id="forgot-password">Esqueci a senha</a>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- TELA DO APP -->
+        <!-- TELA DO APP -->
     <div id="app-screen" class="screen" style="display: none;">
         <!-- Header -->
         <header class="app-header">
@@ -194,7 +179,7 @@
                         <i class="fas fa-clock"></i>
                         <span class="logo-z">Z</span>
                     </div>
-                    <h1 class="app-title">CronoZ</h1>
+                    <h1 class="app-title" id="page-title">CronoZ</h1>
                 </div>
             </div>
             
@@ -203,75 +188,12 @@
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge">0</span>
                 </button>
-                <button class="btn-icon" id="user-menu-btn">
-                    <div class="user-avatar-small" id="header-avatar">?</div>
-                </button>
             </div>
         </header>
 
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-user">
-                    <div class="user-avatar" id="sidebar-avatar">
-                        <div class="avatar-placeholder">?</div>
-                    </div>
-                    <div class="user-info">
-                        <h3 id="sidebar-user-name">Carregando...</h3>
-                        <p id="sidebar-user-email">...</p>
-                    </div>
-                </div>
-            </div>
-            
-            <nav class="sidebar-menu">
-                <a href="#" class="menu-item active" data-page="home">
-                    <i class="fas fa-home"></i>
-                    <span>Início</span>
-                </a>
-                <a href="#" class="menu-item" data-page="contacts">
-                    <i class="fas fa-users"></i>
-                    <span>Contatos</span>
-                </a>
-                <a href="#" class="menu-item" data-page="chat">
-                    <i class="fas fa-comments"></i>
-                    <span>Chat</span>
-                </a>
-                <a href="#" class="menu-item" data-page="calendar">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Calendário</span>
-                </a>
-                <a href="#" class="menu-item" data-page="tree">
-                    <i class="fas fa-tree"></i>
-                    <span>Árvore</span>
-                </a>
-                <a href="#" class="menu-item" data-page="albums">
-                    <i class="fas fa-images"></i>
-                    <span>Álbuns</span>
-                </a>
-                <a href="#" class="menu-item" data-page="settings">
-                    <i class="fas fa-cog"></i>
-                    <span>Configurações</span>
-                </a>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <button class="btn danger" id="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </button>
-            </div>
-        </aside>
-
-        <!-- Overlay do Sidebar -->
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
         <!-- Conteúdo Principal -->
         <main class="app-content" id="app-content">
-            <!-- Conteúdo carregado dinamicamente -->
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <p>Carregando CronoZ...</p>
-            </div>
+            <!-- Conteúdo será carregado aqui -->
         </main>
 
         <!-- Footer Navigation (Mobile) -->
@@ -299,217 +221,230 @@
         </footer>
     </div>
 
-        <!-- Modal de Loading -->
-    <div class="modal" id="loading-modal" style="display: none;">
-        <div class="modal-content" style="max-width: 300px; text-align: center;">
-            <div class="loading-spinner large"></div>
-            <p id="loading-text" style="margin-top: 20px;">Processando...</p>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <script src="script.js"></script>
-    <script src="contacts.js"></script>
-    
     <script>
-        // Scripts de inicialização da página
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📱 CronoZ DOM carregado');
+        // Versão simplificada do script.js para diagnóstico
+        console.log('🔄 Script.js carregado');
+        
+        // Função global para inicializar o app
+        window.initApp = function() {
+            console.log('🚀 Inicializando CronoZ App...');
             
-            // Toggle password visibility
-            const togglePassword = document.getElementById('toggle-password');
-            const passwordInput = document.getElementById('password');
-            
-            if (togglePassword && passwordInput) {
-                togglePassword.addEventListener('click', function() {
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-                    this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-                });
+            // Verificar se Firebase está disponível
+            if (!window.auth || !window.db) {
+                console.error('❌ Firebase não disponível');
+                return;
             }
             
-            // Login button
-            const loginBtn = document.getElementById('login-btn');
-            if (loginBtn) {
-                loginBtn.addEventListener('click', async function() {
-                    const email = document.getElementById('email').value.trim();
-                    const password = document.getElementById('password').value.trim();
-                    const errorElement = document.getElementById('login-error');
-                    
-                    // Validation
-                    if (!email || !password) {
-                        showError('Preencha email e senha');
-                        return;
-                    }
-                    
-                    try {
-                        showLoading('Entrando...');
-                        
-                        // Use the global firebase functions
-                        if (window.firebaseFunctions && window.auth) {
-                            await window.firebaseFunctions.signInWithEmailAndPassword(
-                                window.auth, 
-                                email, 
-                                password
-                            );
-                            
-                            hideLoading();
-                            showSuccess('Login realizado com sucesso!');
-                        } else {
-                            throw new Error('Firebase não inicializado');
-                        }
-                    } catch (error) {
-                        hideLoading();
-                        showError(getErrorMessage(error));
-                    }
-                });
+            // Verificar usuário atual
+            const user = auth.currentUser;
+            if (!user) {
+                console.error('❌ Nenhum usuário logado');
+                return;
             }
             
-            // Google login
-            const googleBtn = document.getElementById('google-login-btn');
-            if (googleBtn && window.auth && window.googleProvider) {
-                googleBtn.addEventListener('click', async function() {
-                    try {
-                        showLoading('Conectando com Google...');
-                        await window.firebaseFunctions.signInWithPopup(
-                            window.auth, 
-                            window.googleProvider
-                        );
-                        hideLoading();
-                    } catch (error) {
-                        hideLoading();
-                        showError(getErrorMessage(error));
-                    }
-                });
+            console.log('👤 Usuário atual:', user.email);
+            
+            // Carregar página inicial
+            loadHomePage();
+            
+            // Configurar navegação
+            setupNavigation();
+            
+            console.log('✅ CronoZ inicializado com sucesso!');
+        };
+        
+        function loadHomePage() {
+            console.log('📄 Carregando página inicial...');
+            
+            const content = document.getElementById('app-content');
+            if (!content) {
+                console.error('❌ Elemento app-content não encontrado');
+                return;
+            }
+
+        // Conteúdo simples de teste
+            content.innerHTML = `
+                <div class="page-content" style="padding: 20px;">
+                    <div class="tray-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                        <h2 style="color: var(--text-color); margin-bottom: 10px;">🎉 Bem-vindo ao CronoZ!</h2>
+                        <p style="color: var(--text-secondary);">Seu app está funcionando corretamente.</p>
+                        <p style="color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Usuário:</strong> ${auth.currentUser?.email || 'Não identificado'}
+                        </p>
+                        <button onclick="testFirebase()" class="btn primary" style="margin-top: 15px;">
+                            Testar Conexão Firebase
+                        </button>
+                    </div>
+                    
+                    <div class="tray-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <h3 style="color: var(--text-color); margin-bottom: 10px;">📱 Menu Rápido</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 15px;">
+                            <button onclick="loadPage('contacts')" class="btn secondary">
+                                <i class="fas fa-users"></i> Contatos
+                            </button>
+                            <button onclick="loadPage('calendar')" class="btn secondary">
+                                <i class="fas fa-calendar"></i> Calendário
+                            </button>
+                            <button onclick="loadPage('tree')" class="btn secondary">
+                                <i class="fas fa-tree"></i> Árvore
+                            </button>
+                            <button onclick="loadPage('settings')" class="btn secondary">
+                                <i class="fas fa-cog"></i> Configurações
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px; color: var(--text-secondary); font-size: 14px;">
+                        <p>CronoZ v1.0.0 - Firebase conectado ✓</p>
+                    </div>
+                </div>
+            `;
+            
+            // Atualizar título
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) {
+                pageTitle.innerHTML = '<i class="fas fa-home"></i> Início';
             }
             
-            // Register button
-            const registerBtn = document.getElementById('register-btn');
-            if (registerBtn) {
-                registerBtn.addEventListener('click', async function() {
-                    const email = document.getElementById('email').value.trim();
-                    const password = document.getElementById('password').value.trim();
-                    
-                    if (!email || !password) {
-                        showError('Preencha email e senha');
-                        return;
-                    }
-                    
-                    if (password.length < 6) {
-                        showError('A senha deve ter pelo menos 6 caracteres');
-                        return;
-                    }
-                    
-                    try {
-                        showLoading('Criando conta...');
-                        
-                        // Create user
-                        const userCredential = await window.firebaseFunctions.createUserWithEmailAndPassword(
-                            window.auth,
-                            email,
-                            password
-                        );
-                        
-                        // Create user document in Firestore
-                        const user = userCredential.user;
-                        const userRef = window.firebaseFunctions.doc(window.db, 'users', user.uid);
-                        
-                        await window.firebaseFunctions.setDoc(userRef, {
-                            email: user.email,
-                            displayName: user.email.split('@')[0],
-                            createdAt: new Date().toISOString(),
-                            theme: 'auto',
-                            accentColor: '#FFD700',
-                            birthDate: null,
-                            phone: '',
-                            profileComplete: false
-                        });
-                        
-                        hideLoading();
-                        showSuccess('Conta criada com sucesso!');
-                        
-                    } catch (error) {
-                        hideLoading();
-                        showError(getErrorMessage(error));
-                    }
-                });
-            }
+            console.log('✅ Página inicial carregada');
+        }
+        
+        function setupNavigation() {
+            console.log('🔗 Configurando navegação...');
             
-            // Forgot password
-            const forgotPassword = document.getElementById('forgot-password');
-            if (forgotPassword) {
-                forgotPassword.addEventListener('click', function(e) {
+            // Botões do footer
+            const footerButtons = document.querySelectorAll('.footer-btn');
+            footerButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    const email = document.getElementById('email').value.trim();
+                    const page = this.getAttribute('data-page');
                     
-                    if (!email) {
-                        showError('Digite seu email para recuperar a senha');
-                        return;
-                    }
+                    // Atualizar botão ativo
+                    footerButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
                     
-                    // This requires additional Firebase setup
-                    showNotification('Funcionalidade em desenvolvimento', 'info');
+                    // Carregar página
+                    loadPage(page);
+                });
+            });
+            
+            // Botão menu hambúrguer
+            const menuToggle = document.getElementById('menu-toggle');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', function() {
+                    alert('Menu sidebar em desenvolvimento');
                 });
             }
             
-            // Helper functions
-            function showError(message) {
-                const errorElement = document.getElementById('login-error');
-                if (errorElement) {
-                    errorElement.textContent = message;
-                    errorElement.style.display = 'block';
-                }
-                
-                // Hide after 5 seconds
-                setTimeout(() => {
-                    if (errorElement) {
-                        errorElement.style.display = 'none';
-                    }
-                }, 5000);
+            // Botão notificações
+            const notificationsBtn = document.getElementById('notifications-btn');
+            if (notificationsBtn) {
+                notificationsBtn.addEventListener('click', function() {
+                    alert('Notificações em desenvolvimento');
+                });
             }
             
-            function showSuccess(message) {
-                // Will be implemented in script.js
-                if (window.showNotification) {
-                    window.showNotification(message, 'success');
+            console.log('✅ Navegação configurada');
+        }
+        
+        function loadPage(page) {
+            console.log(`📄 Carregando página: ${page}`);
+            
+            const titles = {
+                'home': 'Início',
+                'contacts': 'Contatos',
+                'chat': 'Chat',
+                'calendar': 'Calendário',
+                'tree': 'Árvore Genealógica',
+                'settings': 'Configurações'
+            };
+            
+            // Atualizar título
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) {
+                pageTitle.innerHTML = `<i class="fas fa-${getPageIcon(page)}"></i> ${titles[page] || 'CronoZ'}`;
+            }
+            
+            // Conteúdo simples para teste
+            const content = document.getElementById('app-content');
+            content.innerHTML = `
+                <div class="page-content" style="padding: 20px;">
+                    <div class="tray-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <h2 style="color: var(--text-color); margin-bottom: 10px;">
+                            <i class="fas fa-${getPageIcon(page)}"></i> ${titles[page] || 'Página'}
+                        </h2>
+                        <p style="color: var(--text-secondary);">
+                            Esta funcionalidade está em desenvolvimento.
+                        </p>
+                        <p style="color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Página:</strong> ${page}
+                        </p>
+                        <button onclick="loadHomePage()" class="btn primary" style="margin-top: 15px;">
+                            <i class="fas fa-home"></i> Voltar para Início
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getPageIcon(page) {
+            const icons = {
+                'home': 'home',
+                'contacts': 'users',
+                'chat': 'comments',
+                'calendar': 'calendar-alt',
+                'tree': 'tree',
+                'settings': 'cog',
+                'albums': 'images'
+            };
+            return icons[page] || 'file';
+        }
+        
+        // Função de teste Firebase
+        window.testFirebase = async function() {
+            try {
+                alert('Testando conexão Firebase...\n\nUsuário: ' + auth.currentUser?.email);
+                
+                // Tentar ler dados do usuário
+                const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                
+                if (userDoc.exists()) {
+                    alert('✅ Firebase funcionando!\n\nDados do usuário carregados com sucesso.');
                 } else {
-                    alert(message);
+                    alert('⚠️ Firebase funcionando, mas usuário não tem dados ainda.');
                 }
+            } catch (error) {
+                alert('❌ Erro no Firebase:\n\n' + error.message);
             }
+        };
+        
+        // Funções Firebase helpers (simplificadas)
+        async function getDoc(docRef) {
+            const { getDoc: getDocFn } = await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js");
+            return getDocFn(docRef);
+        }
+        
+        function doc(db, path, ...pathSegments) {
+            const { doc: docFn } = window.firebase?.firestore || {};
+            if (docFn) return docFn(db, path, ...pathSegments);
+            return { path }; // Fallback
+        }
+        
+        // Auto-inicializar se já estiver logado
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 DOM totalmente carregado');
             
-            function showLoading(message) {
-                const modal = document.getElementById('loading-modal');
-                const text = document.getElementById('loading-text');
-                
-                if (modal && text) {
-                    text.textContent = message || 'Processando...';
-                    modal.style.display = 'flex';
-                }
-            }
-            
-            function hideLoading() {
-                const modal = document.getElementById('loading-modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
-            }
-            
-            function getErrorMessage(error) {
-                const errorMessages = {
-                    'auth/invalid-email': 'Email inválido',
-                    'auth/user-disabled': 'Esta conta foi desativada',
-                    'auth/user-not-found': 'Usuário não encontrado',
-                    'auth/wrong-password': 'Senha incorreta',
-                    'auth/email-already-in-use': 'Email já cadastrado',
-                    'auth/operation-not-allowed': 'Operação não permitida',
-                    'auth/weak-password': 'Senha muito fraca',
-                    'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde',
-                    'auth/network-request-failed': 'Erro de conexão. Verifique sua internet'
-                };
-                
-                return errorMessages[error.code] || error.message || 'Erro desconhecido';
+            // Se já tiver usuário logado, inicializar app
+            if (window.auth?.currentUser) {
+                console.log('👤 Usuário já está logado, inicializando...');
+                setTimeout(() => {
+                    if (window.initApp) window.initApp();
+                }, 500);
             }
         });
+        
+        console.log('✅ Script.js pronto');
     </script>
     
     <!-- Versão -->
