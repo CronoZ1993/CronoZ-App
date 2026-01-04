@@ -526,5 +526,91 @@ async function toggleFavorito(contatoId) {
         }
         
     } catch (error) {
-        console.error('Erro ao favoritar:', error);
+        console.error('Erro ao favoritar:', error);}
    
+// ======================
+// FUNÇÕES ADICIONAIS (FALTANTES)
+// ======================
+
+function calcularProximoAniversario(dataNascimento) {
+    if (!dataNascimento) return null;
+    
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    
+    const proximo = new Date(dataNascimento);
+    proximo.setFullYear(anoAtual);
+    
+    if (proximo < hoje) {
+        proximo.setFullYear(anoAtual + 1);
+    }
+    
+    return proximo;
+}
+
+function abrirDetalhesContato(contatoId) {
+    const contato = contatosCarregados.find(c => c.id === contatoId);
+    if (!contato) return;
+    
+    alert(`Detalhes de ${contato.nome}\n\n` +
+          `📞 Telefone: ${contato.telefone || 'Não informado'}\n` +
+          `📧 Email: ${contato.email || 'Não informado'}\n` +
+          `🎂 Aniversário: ${contato.dataNascimento ? contato.dataNascimento.toDate().toLocaleDateString('pt-BR') : 'Não informado'}\n` +
+          `📝 Observações: ${contato.observacoes || 'Nenhuma'}`);
+}
+
+function editarContato(contatoId) {
+    mostrarNotificacao('✏️ Edição de contato em breve!');
+    // Implementação futura
+}
+
+async function adicionarAniversarioCalendario(dadosContato) {
+    try {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+        
+        const evento = {
+            tipo: 'aniversario',
+            titulo: `🎂 ${dadosContato.nome}`,
+            descricao: `Aniversário de ${dadosContato.nome}`,
+            data: dadosContato.dataNascimento,
+            cor: '#FF4081',
+            criadoEm: new Date()
+        };
+        
+        // Salvar no calendário do usuário
+        const calendarioRef = collection(db, 'usuarios', user.uid, 'eventos');
+        await addDoc(calendarioRef, evento);
+        
+        mostrarNotificacao('🎂 Aniversário adicionado ao calendário!');
+        
+    } catch (error) {
+        console.error('Erro ao adicionar aniversário:', error);
+    }
+}
+
+// ======================
+// COMPLETAR FUNÇÃO toggleFavorito (QUE ESTÁ CORTADA)
+// ======================
+
+// ⭐⭐ ADICIONE ESTE FIM DA FUNÇÃO ⭐⭐
+} // <-- Este fecha a função toggleFavorito
+
+// ======================
+// EXPORTAR FUNÇÕES PARA USO GLOBAL
+// ======================
+
+window.criarTelaContatos = criarTelaContatos;
+window.carregarContatos = carregarContatos;
+window.importarContatosCelular = importarContatosCelular;
+window.mostrarModalNovoContato = mostrarModalNovoContato;
+window.fecharModal = fecharModal;
+window.salvarNovoContato = salvarNovoContato;
+window.filtrarContatos = filtrarContatos;
+window.filtrarPorCategoria = filtrarPorCategoria;
+window.ordenarContatos = ordenarContatos;
+window.toggleFavorito = toggleFavorito;
+
+console.log('✅ Sistema de Contatos pronto para uso');
