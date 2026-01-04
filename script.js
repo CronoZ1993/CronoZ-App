@@ -3,6 +3,33 @@ console.log('📱 CronoZ iniciando...');
 
 let auth, db, storage;
 
+// ======================
+// INTEGRAÇÃO COM CONTATOS
+// ======================
+
+// Adicionar esta linha na função carregarPagina()
+// Substitua o conteúdo da página 'contacts':
+if (pagina === 'contacts') {
+    conteudo.innerHTML = criarTelaContatos();
+    setTimeout(() => {
+        if (typeof carregarContatos === 'function') {
+            carregarContatos();
+        }
+    }, 100);
+}
+
+// Adicionar esta linha na função configurarNavegacao()
+// (logo após configurar os botões do footer)
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar script de contatos dinamicamente
+    if (document.querySelector('[data-page="contacts"]')) {
+        const script = document.createElement('script');
+        script.src = 'contacts.js';
+        script.onload = () => console.log('✅ Sistema de Contatos carregado');
+        document.head.appendChild(script);
+    }
+});
+
 // Verificar quando Firebase carrega
 setTimeout(() => {
     if (window.auth && window.db && window.storage) {
