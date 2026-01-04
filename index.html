@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoZ - Seu App Completo</title>
     
-    <!-- Font Awesome Icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- CSS do App -->
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    
-    <script>
-        // Configuração do Firebase
+    <!-- Firebase v9 (Modular) -->
+    <script type="module">
+        // Import Firebase v9 modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+        // Configuração do Firebase (DO SEU CONSOLE)
         const firebaseConfig = {
             apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
             authDomain: "cronoz-app-2026.firebaseapp.com",
@@ -34,24 +33,77 @@
             measurementId: "G-5MKXDX2HR6"
         };
 
-        // Inicializar Firebase
         try {
-            const app = firebase.initializeApp(firebaseConfig);
-            const auth = firebase.auth();
-            const db = firebase.firestore();
-            const storage = firebase.storage();
-            const googleProvider = new firebase.auth.GoogleAuthProvider();
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const storage = getStorage(app);
+            const googleProvider = new GoogleAuthProvider();
 
-            // Disponibilizar globalmente
-            window.firebase = firebase;
+            // Make available globally
             window.auth = auth;
             window.db = db;
             window.storage = storage;
             window.googleProvider = googleProvider;
+            
+            // Export functions for global use
+            window.firebaseFunctions = {
+                signInWithEmailAndPassword,
+                createUserWithEmailAndPassword,
+                signInWithPopup,
+                signOut,
+                doc,
+                setDoc,
+                getDoc,
+                updateDoc,
+                collection,
+                addDoc,
+                getDocs,
+                query,
+                where,
+                ref,
+                uploadBytes,
+                getDownloadURL
+            };
 
-            console.log('✅ CronoZ: Firebase Inicializado');
+            console.log('✅ Firebase v9 inicializado com sucesso!');
+
+            // Monitor authentication state
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log('👤 Usuário logado:', user.email);
+                    showAppScreen();
+                } else {
+                    console.log('👤 Nenhum usuário logado');
+                    showLoginScreen();
+                }
+            });
+
         } catch (error) {
-            console.error('❌ Erro Crítico Firebase:', error);
+            console.error('❌ Erro ao inicializar Firebase:', error);
+            document.getElementById('login-screen').innerHTML = `
+                <div class="error-overlay">
+                    <div class="error-content">
+                        <h3>❌ Erro de Conexão</h3>
+                        <p>Não foi possível conectar ao servidor Firebase.</p>
+                        <p><small>${error.message}</small></p>
+                        <button onclick="location.reload()" class="btn primary">Tentar Novamente</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showAppScreen() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'block';
+            document.body.classList.add('app-loaded');
+        }
+
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+            document.body.classList.remove('app-loaded');
         }
     </script>
 </head>
@@ -79,6 +131,7 @@
                         class="form-control" 
                         placeholder="seu@email.com" 
                         value="teste@cronoz.com"
+                        autocomplete="email"
                     >
                 </div>
                 
@@ -93,6 +146,7 @@
                             class="form-control" 
                             placeholder="••••••••" 
                             value="123456"
+                            autocomplete="current-password"
                         >
                         <button class="toggle-password" type="button" id="toggle-password">
                             <i class="fas fa-eye"></i>
@@ -100,7 +154,9 @@
                     </div>
                 </div>
                 
-                <div class="form-actions">
+                <div id="login-error" class="error-message" style="display: none;"></div>
+                
+                <div class="login-actions">
                     <button id="login-btn" class="btn primary">
                         <i class="fas fa-sign-in-alt"></i> Entrar
                     </button>
@@ -127,7 +183,7 @@
 
     <!-- TELA DO APP -->
     <div id="app-screen" class="screen" style="display: none;">
-        <!-- Header do App -->
+        <!-- Header -->
         <header class="app-header">
             <div class="header-left">
                 <button class="menu-toggle" id="menu-toggle">
@@ -143,9 +199,12 @@
             </div>
             
             <div class="header-right">
-                <button class="header-btn" id="notifications-btn">
+                <button class="btn-icon" id="notifications-btn">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
+                    <span class="notification-badge">0</span>
+                </button>
+                <button class="btn-icon" id="user-menu-btn">
+                    <div class="user-avatar-small" id="header-avatar">?</div>
                 </button>
             </div>
         </header>
@@ -183,7 +242,7 @@
                 </a>
                 <a href="#" class="menu-item" data-page="tree">
                     <i class="fas fa-tree"></i>
-                    <span>Árvore Genealógica</span>
+                    <span>Árvore</span>
                 </a>
                 <a href="#" class="menu-item" data-page="albums">
                     <i class="fas fa-images"></i>
@@ -208,12 +267,11 @@
 
         <!-- Conteúdo Principal -->
         <main class="app-content" id="app-content">
-            <div class="page-header">
-                <h2 id="page-title">
-                    <i class="fas fa-home"></i> Início
-                </h2>
+            <!-- Conteúdo carregado dinamicamente -->
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p>Carregando CronoZ...</p>
             </div>
-            <!-- Conteúdo será carregado dinamicamente pelo script.js -->
         </main>
 
         <!-- Footer Navigation (Mobile) -->
@@ -241,21 +299,23 @@
         </footer>
     </div>
 
-    <!-- Modal de Loading -->
+        <!-- Modal de Loading -->
     <div class="modal" id="loading-modal" style="display: none;">
         <div class="modal-content" style="max-width: 300px; text-align: center;">
             <div class="loading-spinner large"></div>
-            <p id="loading-text" style="margin-top: 20px;">Sincronizando...</p>
+            <p id="loading-text" style="margin-top: 20px;">Processando...</p>
         </div>
     </div>
 
-    <!-- Scripts do App -->
+    <!-- Scripts -->
     <script src="script.js"></script>
     <script src="contacts.js"></script>
     
     <script>
-        // Scripts de inicialização
+        // Scripts de inicialização da página
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 CronoZ DOM carregado');
+            
             // Toggle password visibility
             const togglePassword = document.getElementById('toggle-password');
             const passwordInput = document.getElementById('password');
@@ -268,45 +328,192 @@
                 });
             }
             
+            // Login button
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', async function() {
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value.trim();
+                    const errorElement = document.getElementById('login-error');
+                    
+                    // Validation
+                    if (!email || !password) {
+                        showError('Preencha email e senha');
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Entrando...');
+                        
+                        // Use the global firebase functions
+                        if (window.firebaseFunctions && window.auth) {
+                            await window.firebaseFunctions.signInWithEmailAndPassword(
+                                window.auth, 
+                                email, 
+                                password
+                            );
+                            
+                            hideLoading();
+                            showSuccess('Login realizado com sucesso!');
+                        } else {
+                            throw new Error('Firebase não inicializado');
+                        }
+                    } catch (error) {
+                        hideLoading();
+                        showError(getErrorMessage(error));
+                    }
+                });
+            }
+            
+            // Google login
+            const googleBtn = document.getElementById('google-login-btn');
+            if (googleBtn && window.auth && window.googleProvider) {
+                googleBtn.addEventListener('click', async function() {
+                    try {
+                        showLoading('Conectando com Google...');
+                        await window.firebaseFunctions.signInWithPopup(
+                            window.auth, 
+                            window.googleProvider
+                        );
+                        hideLoading();
+                    } catch (error) {
+                        hideLoading();
+                        showError(getErrorMessage(error));
+                    }
+                });
+            }
+            
+            // Register button
+            const registerBtn = document.getElementById('register-btn');
+            if (registerBtn) {
+                registerBtn.addEventListener('click', async function() {
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value.trim();
+                    
+                    if (!email || !password) {
+                        showError('Preencha email e senha');
+                        return;
+                    }
+                    
+                    if (password.length < 6) {
+                        showError('A senha deve ter pelo menos 6 caracteres');
+                        return;
+                    }
+                    
+                    try {
+                        showLoading('Criando conta...');
+                        
+                        // Create user
+                        const userCredential = await window.firebaseFunctions.createUserWithEmailAndPassword(
+                            window.auth,
+                            email,
+                            password
+                        );
+                        
+                        // Create user document in Firestore
+                        const user = userCredential.user;
+                        const userRef = window.firebaseFunctions.doc(window.db, 'users', user.uid);
+                        
+                        await window.firebaseFunctions.setDoc(userRef, {
+                            email: user.email,
+                            displayName: user.email.split('@')[0],
+                            createdAt: new Date().toISOString(),
+                            theme: 'auto',
+                            accentColor: '#FFD700',
+                            birthDate: null,
+                            phone: '',
+                            profileComplete: false
+                        });
+                        
+                        hideLoading();
+                        showSuccess('Conta criada com sucesso!');
+                        
+                    } catch (error) {
+                        hideLoading();
+                        showError(getErrorMessage(error));
+                    }
+                });
+            }
+            
             // Forgot password
             const forgotPassword = document.getElementById('forgot-password');
             if (forgotPassword) {
                 forgotPassword.addEventListener('click', function(e) {
                     e.preventDefault();
-                    const email = document.getElementById('email').value;
+                    const email = document.getElementById('email').value.trim();
+                    
                     if (!email) {
-                        alert('Por favor, insira seu email para recuperar a senha.');
+                        showError('Digite seu email para recuperar a senha');
                         return;
                     }
                     
-                    if (window.auth) {
-                        window.auth.sendPasswordResetEmail(email)
-                            .then(() => {
-                                alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
-                            })
-                            .catch(error => {
-                                alert('Erro ao enviar email: ' + error.message);
-                            });
-                    }
+                    // This requires additional Firebase setup
+                    showNotification('Funcionalidade em desenvolvimento', 'info');
                 });
             }
             
-            // Notifications button
-            const notificationsBtn = document.getElementById('notifications-btn');
-            if (notificationsBtn) {
-                notificationsBtn.addEventListener('click', function() {
-                    showNotification('Sistema de notificações em desenvolvimento', 'info');
-                });
+            // Helper functions
+            function showError(message) {
+                const errorElement = document.getElementById('login-error');
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                }
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                }, 5000);
+            }
+            
+            function showSuccess(message) {
+                // Will be implemented in script.js
+                if (window.showNotification) {
+                    window.showNotification(message, 'success');
+                } else {
+                    alert(message);
+                }
+            }
+            
+            function showLoading(message) {
+                const modal = document.getElementById('loading-modal');
+                const text = document.getElementById('loading-text');
+                
+                if (modal && text) {
+                    text.textContent = message || 'Processando...';
+                    modal.style.display = 'flex';
+                }
+            }
+            
+            function hideLoading() {
+                const modal = document.getElementById('loading-modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+            
+            function getErrorMessage(error) {
+                const errorMessages = {
+                    'auth/invalid-email': 'Email inválido',
+                    'auth/user-disabled': 'Esta conta foi desativada',
+                    'auth/user-not-found': 'Usuário não encontrado',
+                    'auth/wrong-password': 'Senha incorreta',
+                    'auth/email-already-in-use': 'Email já cadastrado',
+                    'auth/operation-not-allowed': 'Operação não permitida',
+                    'auth/weak-password': 'Senha muito fraca',
+                    'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde',
+                    'auth/network-request-failed': 'Erro de conexão. Verifique sua internet'
+                };
+                
+                return errorMessages[error.code] || error.message || 'Erro desconhecido';
             }
         });
-        
-        // Função global para mostrar notificações (será sobrescrita pelo script.js)
-        window.showNotification = function(message, type = 'info') {
-            alert(message);
-        };
     </script>
     
-    <!-- Versão do App -->
+    <!-- Versão -->
     <div class="app-version">CronoZ v1.0.0</div>
 </body>
 </html>
+```
