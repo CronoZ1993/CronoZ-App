@@ -1,673 +1,1180 @@
-// tree.js - Árvore Genealógica Interativa
-class TreeModule {
-    constructor(app) {
-        this.app = app;
-        this.treeData = {};
-        this.selectedNode = null;
-        this.view = 'tree'; // tree, list, timeline
-        
+// tree.js - ÁRVORE GENEALÓGICA (Parte 1/4)
+import { auth, db } from './firebase-config.js';
+import { 
+    collection, 
+    doc, 
+    getDoc, 
+    getDocs,
+    setDoc, 
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+class FamilyTreeSystem {
+    constructor() {
+        this.currentUser = null;
+        this.familyMembers = [];
+        this.treeData = null;
+        this.currentView = 'members';
         this.init();
     }
-    
+
     async init() {
-        await this.loadTree();
-        this.render();
-        this.setupEventListeners();
-    }
-    
-    async loadTree() {
-        try {
-            const user = this.app.user;
-            if (user) {
-                const treeRef = ref(db, `users/${user.uid}/familyTree`);
-                const snapshot = await get(treeRef);
-                
-                if (snapshot.exists()) {
-                    this.treeData = snapshot.val();
-                } else {
-                    this.treeData = this.getSampleTree();
-                    await this.saveTree();
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar árvore:', error);
-            this.treeData = this.getSampleTree();
-        }
-    }
-    
-    getSampleTree() {
-        return {
-            id: 'root',
-            name: 'Família Silva',
-            nodes: [
-                {
-                    id: '1',
-                    name: 'João Silva',
-                    birthDate: '1950-05-15',
-                    deathDate: '',
-                    gender: 'male',
-                    photo: '',
-                    parents: [],
-                    children: ['3', '4'],
-                    spouse: '2',
-                    notes: 'Fundador da família'
-                },
-                {
-                    id: '2',
-                    name: 'Maria Santos',
-                    birthDate: '1952-08-20',
-                    deathDate: '',
-                    gender: 'female',
-                    photo: '',
-                    parents: [],
-                    children: ['3', '4'],
-                    spouse: '1',
-                    notes: ''
-                },
-                {
-                    id: '3',
-                    name: 'Carlos Silva',
-                    birthDate: '1975-03-10',
-                    deathDate: '',
-                    gender: 'male',
-                    photo: '',
-                    parents: ['1', '2'],
-                    children: [],
-                    spouse: '',
-                    notes: ''
-                }
-            ]
-        };
+        await this.loadCurrentUser();
+        this.setupTreeListeners();
     }
 
-  async saveTree() {
-        try {
-            const user = this.app.user;
-            if (user) {
-                const treeRef = ref(db, `users/${user.uid}/familyTree`);
-                await set(treeRef, this.treeData);
-            }
-        } catch (error) {
-            console.error('Erro ao salvar árvore:', error);
+    async loadCurrentUser() {
+        const userData = localStorage.getItem('currentUser');
+        if (userData) {
+            this.currentUser = JSON.parse(userData);
         }
     }
-    
-    async addPerson(personData) {
-        const person = {
-            id: Date.now().toString(),
-            ...personData,
-            createdAt: new Date().toISOString()
-        };
-        
-        this.treeData.nodes.push(person);
-        await this.saveTree();
-        this.renderTree();
-    }
-    
-    async updatePerson(id, updates) {
-        const index = this.treeData.nodes.findIndex(p => p.id === id);
-        if (index !== -1) {
-            this.treeData.nodes[index] = { ...this.treeData.nodes[index], ...updates };
-            await this.saveTree();
-            this.renderTree();
-        }
-    }
-    
-    async deletePerson(id) {
-        this.treeData.nodes = this.treeData.nodes.filter(p => p.id !== id);
-        await this.saveTree();
-        this.renderTree();
-    }
-    
-    render() {
-        const container = document.getElementById('tree-container');
-        if (!container) return;
-        
-        container.innerHTML = `
-            <div class="tree-header">
-                <h2>Árvore Genealógica</h2>
-                <div class="tree-actions">
-                    <div class="view-selector">
-                        <button class="view-btn ${this.view === 'tree' ? 'active' : ''}" data-view="tree">
-                            <i class="fas fa-project-diagram"></i> Árvore
-                        </button>
-                        <button class="view-btn ${this.view === 'list' ? 'active' : ''}" data-view="list">
-                            <i class="fas fa-list"></i> Lista
-                        </button>
-                        <button class="view-btn ${this.view === 'timeline' ? 'active' : ''}" data-view="timeline">
-                            <i class="fas fa-timeline"></i> Linha do Tempo
-                        </button>
-                    </div>
-                    
-                    <button class="btn btn-primary" id="add-person-btn">
-                        <i class="fas fa-user-plus"></i> Adicionar Pessoa
-                    </button>
-                    
-                    <button class="btn btn-secondary" id="import-tree-btn">
-                        <i class="fas fa-file-import"></i> Importar
-                    </button>
-                    
-                    <button class="btn btn-secondary" id="export-tree-btn">
-                        <i class="fas fa-file-export"></i> Exportar
-                    </button>
-                </div>
-            </div>
-            
-            <div class="tree-main">
-                <div class="tree-sidebar">
-                    <div class="tree-stats">
-                        <h4>Estatísticas</h4>
-                        <div class="stat-item">
-                            <span>Total de Pessoas:</span>
-                            <strong>${this.treeData.nodes?.length || 0}</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Gerações:</span>
-                            <strong>${this.calculateGenerations()}</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Maior Idade:</span>
-                            <strong>${this.getOldestAge()} anos</strong>
-                        </div>
-                    </div>
-                    
-                    <div class="tree-search">
-                        <input type="text" placeholder="Buscar na árvore..." id="tree-search">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    
-                    <div class="tree-list" id="tree-list">
-                        <!-- Lista de pessoas será renderizada aqui -->
-                    </div>
-                </div>
-                
-                <div class="tree-view" id="tree-view">
-                    <!-- Visualização da árvore será renderizada aqui -->
-                </div>
-            </div>
 
-            <div class="tree-view" id="tree-view">
-                    <!-- Visualização da árvore será renderizada aqui -->
+    async renderTreePage() {
+        const mainContent = document.getElementById('mainContent');
+        
+        mainContent.innerHTML = `
+            <div class="tree-container">
+                <!-- Cabeçalho -->
+                <div class="tree-header">
+                    <h2><i class="fas fa-tree"></i> Árvore Genealógica</h2>
+                    <div class="header-actions">
+                        <div class="view-selector">
+                            <select id="treeViewSelect" onchange="familyTreeSystem.switchView(this.value)">
+                                <option value="members">Membros</option>
+                                <option value="tree">Visualizar Árvore</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" id="addMemberBtn">
+                            <i class="fas fa-user-plus"></i> Novo Membro
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Modal de pessoa -->
-            <div class="modal" id="person-modal">
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <h3 id="modal-title">Nova Pessoa</h3>
-                    <form id="person-form">
-                        <input type="hidden" id="person-id">
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="person-name">Nome *</label>
-                                <input type="text" id="person-name" required>
+
+                <!-- Conteúdo da Árvore -->
+                <div class="tree-content">
+                    <!-- Visão: Lista de Membros -->
+                    <div class="members-view" id="membersView">
+                        <div class="members-header">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="memberSearch" placeholder="Buscar membros...">
                             </div>
+                            <div class="filters">
+                                <select id="memberSort">
+                                    <option value="name">Nome (A-Z)</option>
+                                    <option value="birthdate">Data Nascimento</option>
+                                    <option value="added">Data Adição</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="members-list" id="membersList">
+                            <div class="loading-members">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Carregando membros da família...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visão: Árvore Visual -->
+                    <div class="tree-view" id="treeView" style="display: none;">
+                        <div class="tree-controls">
+                            <button class="btn-secondary" onclick="familyTreeSystem.zoomIn()">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button class="btn-secondary" onclick="familyTreeSystem.zoomOut()">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button class="btn-secondary" onclick="familyTreeSystem.resetView()">
+                                <i class="fas fa-expand-arrows-alt"></i>
+                            </button>
+                            <button class="btn-primary" onclick="familyTreeSystem.exportTree()">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                        
+                        <div class="tree-canvas-container">
+                            <div class="tree-canvas" id="treeCanvas">
+                                <!-- A árvore será renderizada aqui com D3.js -->
+                                <div class="tree-placeholder">
+                                    <i class="fas fa-tree"></i>
+                                    <p>Árvore genealógica será exibida aqui</p>
+                                    <p class="hint">Adicione membros para visualizar a árvore</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.setupTreeEvents();
+        await this.loadFamilyMembers();
+        this.addTreeStyles();
+    }
+
+// Métodos de configuração
+setupTreeListeners() {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+        const membersRef = collection(db, 'users', userId, 'family');
+        onSnapshot(membersRef, (snapshot) => {
+            this.familyMembers = [];
+            snapshot.forEach(doc => {
+                this.familyMembers.push({ id: doc.id, ...doc.data() });
+            });
+            this.renderMembersList();
+            this.generateTreeData();
+        });
+    }
+}
+
+setupTreeEvents() {
+    document.getElementById('addMemberBtn')?.addEventListener('click', () => {
+        this.showAddMemberModal();
+    });
+
+    document.getElementById('memberSearch')?.addEventListener('input', (e) => {
+        this.filterMembers(e.target.value);
+    });
+
+    document.getElementById('memberSort')?.addEventListener('change', (e) => {
+        this.sortMembers(e.target.value);
+    });
+}
+
+async loadFamilyMembers() {
+    try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) return;
+
+        const membersRef = collection(db, 'users', userId, 'family');
+        const q = query(membersRef, orderBy('name'));
+        const snapshot = await getDocs(q);
+        
+        this.familyMembers = [];
+        snapshot.forEach(doc => {
+            this.familyMembers.push({ id: doc.id, ...doc.data() });
+        });
+        
+        this.renderMembersList();
+        this.generateTreeData();
+        
+    } catch (error) {
+        console.error('Erro ao carregar membros:', error);
+    }
+}
+
+renderMembersList() {
+    const membersList = document.getElementById('membersList');
+    if (!membersList) return;
+
+    if (this.familyMembers.length === 0) {
+        membersList.innerHTML = `
+            <div class="empty-members">
+                <i class="fas fa-user-slash"></i>
+                <h3>Nenhum membro na árvore</h3>
+                <p>Adicione o primeiro membro da sua família!</p>
+                <button class="btn-primary" onclick="familyTreeSystem.showAddMemberModal()">
+                    <i class="fas fa-user-plus"></i> Adicionar Membro
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    membersList.innerHTML = this.familyMembers.map(member => `
+        <div class="member-card" data-id="${member.id}">
+            <div class="member-avatar">
+                <img src="${member.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(member.name)}" 
+                     alt="${member.name}">
+                ${member.isUser ? '<span class="user-badge"><i class="fas fa-user"></i></span>' : ''}
+            </div>
+            
+            <div class="member-info">
+                <div class="member-main">
+                    <h4 class="member-name">${member.name}</h4>
+                    ${member.nickname ? `<p class="member-nickname">"${member.nickname}"</p>` : ''}
+                    <div class="member-tags">
+                        ${member.relationship ? `<span class="relationship-tag">${member.relationship}</span>` : ''}
+                        ${member.generation ? `<span class="generation-tag">${this.getGenerationLabel(member.generation)}</span>` : ''}
+                    </div>
+                </div>
+                
+                <div class="member-details">
+                    ${member.birthDate ? `
+                        <div class="member-detail">
+                            <i class="fas fa-birthday-cake"></i>
+                            <span>${this.formatDate(member.birthDate)}</span>
+                            ${member.age ? `<span class="age">(${member.age} anos)</span>` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    ${member.deathDate ? `
+                        <div class="member-detail">
+                            <i class="fas fa-cross"></i>
+                            <span>Falecimento: ${this.formatDate(member.deathDate)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="member-connections">
+                    ${member.spouse ? `<span class="connection"><i class="fas fa-heart"></i> Cônjuge</span>` : ''}
+                    ${member.childrenCount > 0 ? `<span class="connection"><i class="fas fa-child"></i> ${member.childrenCount} filhos</span>` : ''}
+                    ${member.parents ? `<span class="connection"><i class="fas fa-users"></i> Pais</span>` : ''}
+                </div>
+            </div>
+            
+            <div class="member-actions">
+                <button class="action-btn" onclick="familyTreeSystem.editMember('${member.id}')" 
+                        title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                
+                <button class="action-btn" onclick="familyTreeSystem.showRelationships('${member.id}')" 
+                        title="Relacionamentos">
+                    <i class="fas fa-project-diagram"></i>
+                </button>
+                
+                <button class="action-btn" onclick="familyTreeSystem.deleteMember('${member.id}')" 
+                        title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+getGenerationLabel(generation) {
+    const labels = {
+        '-3': 'Bisavô',
+        '-2': 'Avô',
+        '-1': 'Pai',
+        '0': 'Eu',
+        '1': 'Filho',
+        '2': 'Neto',
+        '3': 'Bisneto'
+    };
+    return labels[generation] || `Geração ${generation}`;
+}
+
+formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+}
+
+filterMembers(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    const members = document.querySelectorAll('.member-card');
+    
+    members.forEach(member => {
+        const name = member.querySelector('.member-name').textContent.toLowerCase();
+        const nickname = member.querySelector('.member-nickname')?.textContent.toLowerCase() || '';
+        const shouldShow = name.includes(term) || nickname.includes(term);
+        member.style.display = shouldShow ? 'flex' : 'none';
+    });
+}
+
+sortMembers(sortBy) {
+    switch(sortBy) {
+        case 'name':
+            this.familyMembers.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'birthdate':
+            this.familyMembers.sort((a, b) => {
+                const dateA = new Date(a.birthDate || 0);
+                const dateB = new Date(b.birthDate || 0);
+                return dateA - dateB;
+            });
+            break;
+        case 'added':
+            this.familyMembers.sort((a, b) => {
+                const dateA = new Date(a.createdAt || 0);
+                const dateB = new Date(b.createdAt || 0);
+                return dateA - dateB;
+            });
+            break;
+    }
+    this.renderMembersList();
+}
+
+// Métodos de CRUD de membros
+showAddMemberModal() {
+    const modalHtml = `
+        <div class="modal-overlay active" id="addMemberModal">
+            <div class="modal-content wide-modal">
+                <div class="modal-header">
+                    <h3>Adicionar Membro da Família</h3>
+                    <button class="close-modal" onclick="familyTreeSystem.closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="form-tabs">
+                        <button class="form-tab active" data-tab="basic">Informações Básicas</button>
+                        <button class="form-tab" data-tab="relations">Relacionamentos</button>
+                        <button class="form-tab" data-tab="additional">Informações Adicionais</button>
+                    </div>
+                    
+                    <div class="form-content">
+                        <!-- Aba Básica -->
+                        <div class="form-tab-content active" id="basicTab">
                             <div class="form-group">
-                                <label for="person-gender">Gênero</label>
-                                <select id="person-gender">
+                                <label>Nome Completo *</label>
+                                <input type="text" id="memberName" placeholder="Nome do membro" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Apelido</label>
+                                    <input type="text" id="memberNickname" placeholder="Como era chamado?">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Parentesco *</label>
+                                    <select id="memberRelationship">
+                                        <option value="">Selecione...</option>
+                                        <option value="user">Eu mesmo</option>
+                                        <option value="spouse">Cônjuge</option>
+                                        <option value="father">Pai</option>
+                                        <option value="mother">Mãe</option>
+                                        <option value="son">Filho(a)</option>
+                                        <option value="daughter">Filha</option>
+                                        <option value="brother">Irmão</option>
+                                        <option value="sister">Irmã</option>
+                                        <option value="grandfather">Avô</option>
+                                        <option value="grandmother">Avó</option>
+                                        <option value="uncle">Tio</option>
+                                        <option value="aunt">Tia</option>
+                                        <option value="cousin">Primo(a)</option>
+                                        <option value="other">Outro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Data de Nascimento</label>
+                                    <input type="date" id="memberBirthDate">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Data de Falecimento</label>
+                                    <input type="date" id="memberDeathDate">
+                                </div>
+                            </div>
+                            
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="memberIsUser">
+                                    <span>Este membro sou eu</span>
+                                </label>
+                                
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="memberAddToCalendar">
+                                    <span>Adicionar aniversário ao calendário</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Aba Relacionamentos -->
+                        <div class="form-tab-content" id="relationsTab">
+                            <div class="form-group">
+                                <label>Cônjuge</label>
+                                <select id="memberSpouse">
+                                    <option value="">Nenhum</option>
+                                    ${this.familyMembers.map(m => 
+                                        `<option value="${m.id}">${m.name}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Pai</label>
+                                <select id="memberFather">
+                                    <option value="">Desconhecido</option>
+                                    ${this.familyMembers.filter(m => m.gender === 'male' || !m.gender).map(m => 
+                                        `<option value="${m.id}">${m.name}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Mãe</label>
+                                <select id="memberMother">
+                                    <option value="">Desconhecida</option>
+                                    ${this.familyMembers.filter(m => m.gender === 'female' || !m.gender).map(m => 
+                                        `<option value="${m.id}">${m.name}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Filhos</label>
+                                <div class="multi-select" id="memberChildren">
+                                    ${this.familyMembers.map(m => `
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" value="${m.id}">
+                                            <span>${m.name}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Aba Adicional -->
+                        <div class="form-tab-content" id="additionalTab">
+                            <div class="form-group">
+                                <label>Foto (URL)</label>
+                                <input type="text" id="memberPhotoURL" placeholder="Cole a URL da foto">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Gênero</label>
+                                <select id="memberGender">
+                                    <option value="">Não especificado</option>
                                     <option value="male">Masculino</option>
                                     <option value="female">Feminino</option>
                                     <option value="other">Outro</option>
                                 </select>
                             </div>
-                        </div>
-                        
-                        <div class="form-row">
+                            
                             <div class="form-group">
-                                <label for="person-birth">Nascimento</label>
-                                <input type="date" id="person-birth">
+                                <label>Local de Nascimento</label>
+                                <input type="text" id="memberBirthPlace" placeholder="Cidade, Estado">
                             </div>
+                            
                             <div class="form-group">
-                                <label for="person-death">Falecimento</label>
-                                <input type="date" id="person-death">
+                                <label>Profissão</label>
+                                <input type="text" id="memberOccupation" placeholder="Profissão do membro">
                             </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="person-photo">Foto (URL)</label>
-                            <input type="url" id="person-photo">
-                        </div>
-                        
-                        <div class="form-row">
+                            
                             <div class="form-group">
-                                <label for="person-parents">Pais</label>
-                                <select id="person-parents" multiple>
-                                    ${this.treeData.nodes?.map(person => 
-                                        `<option value="${person.id}">${person.name}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="person-children">Filhos</label>
-                                <select id="person-children" multiple>
-                                    ${this.treeData.nodes?.map(person => 
-                                        `<option value="${person.id}">${person.name}</option>`
-                                    ).join('')}
-                                </select>
+                                <label>Observações</label>
+                                <textarea id="memberNotes" rows="3" placeholder="Notas e informações adicionais"></textarea>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="person-spouse">Cônjuge</label>
-                            <select id="person-spouse">
-                                <option value="">Nenhum</option>
-                                ${this.treeData.nodes?.map(person => 
-                                    `<option value="${person.id}">${person.name}</option>`
-                                ).join('')}
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="person-notes">Notas</label>
-                            <textarea id="person-notes" rows="4"></textarea>
-                        </div>
-                        
-                        <div class="modal-actions">
-                            <button type="button" class="btn btn-secondary" id="cancel-person">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Salvar</button>
-                        </div>
-                    </form>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn-secondary" onclick="familyTreeSystem.closeModal()">
+                            Cancelar
+                        </button>
+                        <button class="btn-primary" onclick="familyTreeSystem.saveMember()">
+                            <i class="fas fa-save"></i> Salvar Membro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.setupFormTabs();
+}
+
+setupFormTabs() {
+    const tabs = document.querySelectorAll('.form-tab');
+    const contents = document.querySelectorAll('.form-tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.dataset.tab;
+            
+            // Atualizar tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Atualizar conteúdos
+            contents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabId}Tab`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+}
+
+async saveMember() {
+    const name = document.getElementById('memberName').value;
+    const relationship = document.getElementById('memberRelationship').value;
+    
+    if (!name || !relationship) {
+        this.showMessage('Nome e parentesco são obrigatórios', 'error');
+        return;
+    }
+
+    try {
+        const userId = localStorage.getItem('userId');
+        const memberId = Date.now().toString();
+        
+        // Calcular geração baseada no parentesco
+        const generation = this.calculateGeneration(relationship);
+        
+        const memberData = {
+            id: memberId,
+            name: name,
+            nickname: document.getElementById('memberNickname').value || '',
+            relationship: relationship,
+            generation: generation,
+            birthDate: document.getElementById('memberBirthDate').value || '',
+            deathDate: document.getElementById('memberDeathDate').value || '',
+            isUser: document.getElementById('memberIsUser').checked,
+            photoURL: document.getElementById('memberPhotoURL').value || '',
+            gender: document.getElementById('memberGender').value || '',
+            birthPlace: document.getElementById('memberBirthPlace').value || '',
+            occupation: document.getElementById('memberOccupation').value || '',
+            notes: document.getElementById('memberNotes').value || '',
+            
+            // Relacionamentos
+            spouse: document.getElementById('memberSpouse').value || null,
+            father: document.getElementById('memberFather').value || null,
+            mother: document.getElementById('memberMother').value || null,
+            
+            // Calcular idade
+            age: this.calculateAge(document.getElementById('memberBirthDate').value),
+            
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        const memberRef = doc(db, 'users', userId, 'family', memberId);
+        await setDoc(memberRef, memberData);
+        
+        // Se for o usuário, atualizar perfil
+        if (memberData.isUser) {
+            await this.updateUserProfile(memberData);
+        }
+        
+        this.showMessage('Membro salvo com sucesso!', 'success');
+        this.closeModal();
+        this.loadFamilyMembers();
+        
+    } catch (error) {
+        console.error('Erro ao salvar membro:', error);
+        this.showMessage('Erro ao salvar membro', 'error');
+    }
+}
+
+    // Métodos auxiliares
+    calculateGeneration(relationship) {
+        const generations = {
+            'user': 0,
+            'spouse': 0,
+            'father': -1,
+            'mother': -1,
+            'son': 1,
+            'daughter': 1,
+            'brother': 0,
+            'sister': 0,
+            'grandfather': -2,
+            'grandmother': -2,
+            'uncle': -1,
+            'aunt': -1,
+            'cousin': 0
+        };
+        return generations[relationship] || 0;
+    }
+
+    calculateAge(birthDate) {
+        if (!birthDate) return null;
+        
+        const birth = new Date(birthDate);
+        const today = new Date();
+        
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        
+        return age;
+    }
+
+    async updateUserProfile(memberData) {
+        try {
+            const userId = localStorage.getItem('userId');
+            const userRef = doc(db, 'users', userId);
+            
+            await updateDoc(userRef, {
+                displayName: memberData.name,
+                birthDate: memberData.birthDate
+            });
+            
+            // Atualizar localmente
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            currentUser.displayName = memberData.name;
+            currentUser.birthDate = memberData.birthDate;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+        } catch (error) {
+            console.error('Erro ao atualizar perfil:', error);
+        }
+    }
+
+    switchView(view) {
+        this.currentView = view;
+        
+        const membersView = document.getElementById('membersView');
+        const treeView = document.getElementById('treeView');
+        
+        if (view === 'members') {
+            membersView.style.display = 'block';
+            treeView.style.display = 'none';
+        } else {
+            membersView.style.display = 'none';
+            treeView.style.display = 'block';
+            this.renderTreeVisualization();
+        }
+    }
+
+    generateTreeData() {
+        // Estruturar dados para visualização da árvore
+        this.treeData = {
+            nodes: this.familyMembers.map(member => ({
+                id: member.id,
+                name: member.name,
+                nickname: member.nickname,
+                relationship: member.relationship,
+                generation: member.generation,
+                photoURL: member.photoURL,
+                isUser: member.isUser
+            })),
+            links: []
+        };
+        
+        // Criar links baseados nos relacionamentos
+        this.familyMembers.forEach(member => {
+            if (member.spouse) {
+                this.treeData.links.push({
+                    source: member.id,
+                    target: member.spouse,
+                    type: 'spouse'
+                });
+            }
+            
+            if (member.father) {
+                this.treeData.links.push({
+                    source: member.id,
+                    target: member.father,
+                    type: 'parent'
+                });
+            }
+            
+            if (member.mother) {
+                this.treeData.links.push({
+                    source: member.id,
+                    target: member.mother,
+                    type: 'parent'
+                });
+            }
+        });
+    }
+
+    renderTreeVisualization() {
+        const treeCanvas = document.getElementById('treeCanvas');
+        if (!treeCanvas || this.familyMembers.length === 0) return;
+        
+        treeCanvas.innerHTML = `
+            <div class="tree-diagram">
+                <!-- Diagrama simples sem D3.js -->
+                <div class="tree-levels">
+                    ${this.renderTreeLevels()}
                 </div>
             </div>
         `;
-        
-        this.renderView();
     }
 
-  renderView() {
-        switch (this.view) {
-            case 'tree':
-                this.renderTree();
-                break;
-            case 'list':
-                this.renderList();
-                break;
-            case 'timeline':
-                this.renderTimeline();
-                break;
-        }
+    renderTreeLevels() {
+        // Agrupar por geração
+        const byGeneration = {};
+        this.familyMembers.forEach(member => {
+            const gen = member.generation || 0;
+            if (!byGeneration[gen]) byGeneration[gen] = [];
+            byGeneration[gen].push(member);
+        });
         
-        this.renderTreeList();
-    }
-    
-    renderTree() {
-        const view = document.getElementById('tree-view');
-        if (!view) return;
+        // Ordenar gerações
+        const generations = Object.keys(byGeneration).sort((a, b) => a - b);
         
-        // Usar D3.js para renderizar a árvore
-        view.innerHTML = `
-            <div class="tree-diagram" id="tree-diagram">
-                <svg width="100%" height="600"></svg>
-            </div>
-        `;
-        
-        this.renderD3Tree();
-    }
-    
-    renderD3Tree() {
-        // Implementação simplificada com D3.js
-        const svg = d3.select('#tree-diagram svg');
-        const width = svg.node().getBoundingClientRect().width;
-        const height = 600;
-        
-        svg.attr('width', width).attr('height', height);
-        
-        // Criar estrutura de dados para D3
-        const root = this.buildD3Tree();
-        
-        // Configurar layout da árvore
-        const treeLayout = d3.tree().size([height - 100, width - 200]);
-        const treeData = treeLayout(root);
-        
-        // Criar links
-        const links = svg.append('g')
-            .selectAll('.link')
-            .data(treeData.links())
-            .enter()
-            .append('path')
-            .attr('class', 'link')
-            .attr('d', d3.linkHorizontal()
-                .x(d => d.y)
-                .y(d => d.x))
-            .attr('stroke', '#999')
-            .attr('fill', 'none');
-        
-        // Criar nós
-        const nodes = svg.append('g')
-            .selectAll('.node')
-            .data(treeData.descendants())
-            .enter()
-            .append('g')
-            .attr('class', 'node')
-            .attr('transform', d => `translate(${d.y},${d.x})`)
-            .on('click', (event, d) => this.selectNode(d.data.id));
-        
-        // Adicionar círculos aos nós
-        nodes.append('circle')
-            .attr('r', 25)
-            .attr('fill', d => d.data.gender === 'male' ? '#4A90E2' : '#E24A4A');
-        
-        // Adicionar texto
-        nodes.append('text')
-            .attr('dy', '.35em')
-            .attr('y', -30)
-            .attr('text-anchor', 'middle')
-            .text(d => d.data.name)
-            .style('font-size', '12px')
-            .style('fill', '#333');
-        
-        nodes.append('text')
-            .attr('dy', '.35em')
-            .attr('y', 35)
-            .attr('text-anchor', 'middle')
-            .text(d => d.data.birthDate ? new Date(d.data.birthDate).getFullYear() : '')
-            .style('font-size', '10px')
-            .style('fill', '#666');
-    }
-    
-    buildD3Tree() {
-        // Encontrar a raiz (alguém sem pais)
-        const rootPerson = this.treeData.nodes.find(p => 
-            !p.parents || p.parents.length === 0
-        ) || this.treeData.nodes[0];
-        
-        const hierarchy = { id: rootPerson.id, name: rootPerson.name, gender: rootPerson.gender, birthDate: rootPerson.birthDate };
-        
-        const buildChildren = (personId) => {
-            const person = this.treeData.nodes.find(p => p.id === personId);
-            if (!person || !person.children || person.children.length === 0) return [];
-
-        return person.children.map(childId => {
-                const child = this.treeData.nodes.find(p => p.id === childId);
-                return {
-                    id: child.id,
-                    name: child.name,
-                    gender: child.gender,
-                    birthDate: child.birthDate,
-                    children: buildChildren(child.id)
-                };
-            });
-        };
-        
-        hierarchy.children = buildChildren(rootPerson.id);
-        return d3.hierarchy(hierarchy);
-    }
-    
-    renderList() {
-        const view = document.getElementById('tree-view');
-        if (!view) return;
-        
-        view.innerHTML = `
-            <div class="tree-list-view">
-                <h3>Lista de Família</h3>
-                <table class="tree-table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Gênero</th>
-                            <th>Nascimento</th>
-                            <th>Idade</th>
-                            <th>Pais</th>
-                            <th>Filhos</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${this.treeData.nodes?.map(person => `
-                            <tr>
-                                <td>
-                                    <div class="person-info">
-                                        ${person.photo ? `<img src="${person.photo}" alt="${person.name}">` : 
-                                          `<div class="person-avatar ${person.gender}">${person.name.charAt(0)}</div>`}
-                                        <span>${person.name}</span>
-                                    </div>
-                                </td>
-                                <td>${person.gender === 'male' ? 'Masculino' : 'Feminino'}</td>
-                                <td>${person.birthDate ? new Date(person.birthDate).toLocaleDateString('pt-BR') : '-'}</td>
-                                <td>${this.calculateAge(person.birthDate, person.deathDate)}</td>
-                                <td>${this.getParentsNames(person.parents)}</td>
-                                <td>${person.children?.length || 0}</td>
-                                <td>
-                                    <button class="icon-btn" data-action="edit" data-id="${person.id}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="icon-btn" data-action="delete" data-id="${person.id}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-    
-    renderTimeline() {
-        const view = document.getElementById('tree-view');
-        if (!view) return;
-        
-        // Ordenar pessoas por data de nascimento
-        const sortedPeople = [...this.treeData.nodes].sort((a, b) => 
-            new Date(a.birthDate || 0) - new Date(b.birthDate || 0)
-        );
-        
-        view.innerHTML = `
-            <div class="timeline-view">
-                <h3>Linha do Tempo da Família</h3>
-                <div class="timeline">
-                    ${sortedPeople.map((person, index) => `
-                        <div class="timeline-item ${index % 2 === 0 ? 'left' : 'right'}">
-                            <div class="timeline-content">
-                                <div class="timeline-year">${person.birthDate ? new Date(person.birthDate).getFullYear() : '?'}</div>
-                                <div class="timeline-person">
-                                    ${person.photo ? `<img src="${person.photo}" alt="${person.name}">` : 
-                                      `<div class="person-avatar ${person.gender}">${person.name.charAt(0)}</div>`}
-                                    <div>
-                                        <h4>${person.name}</h4>
-                                        <p>${person.birthDate ? new Date(person.birthDate).toLocaleDateString('pt-BR') : 'Data desconhecida'}</p>
-                                        ${person.deathDate ? `<p>Falecimento: ${new Date(person.deathDate).toLocaleDateString('pt-BR')}</p>` : ''}
-                                    </div>
-                                </div>
+        return generations.map(gen => `
+            <div class="tree-level" data-generation="${gen}">
+                <h4>${this.getGenerationLabel(gen)}</h4>
+                <div class="level-members">
+                    ${byGeneration[gen].map(member => `
+                        <div class="tree-node ${member.isUser ? 'user-node' : ''}" data-id="${member.id}">
+                            <div class="node-avatar">
+                                <img src="${member.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(member.name)}" 
+                                     alt="${member.name}">
+                            </div>
+                            <div class="node-info">
+                                <strong>${member.name}</strong>
+                                ${member.nickname ? `<small>"${member.nickname}"</small>` : ''}
+                                <div class="node-relationship">${member.relationship}</div>
                             </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
+        `).join('');
+    }
+
+    closeModal() {
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => modal.remove());
+    }
+
+    showMessage(message, type = 'info') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
         `;
+        
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: ${type === 'success' ? '#28A745' : type === 'error' ? '#DC3545' : '#17A2B8'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.style.animation = 'slideIn 0.3s ease reverse forwards';
+            setTimeout(() => messageDiv.remove(), 300);
+        }, 3000);
     }
 
-  renderTreeList() {
-        const list = document.getElementById('tree-list');
-        if (!list) return;
-        
-        list.innerHTML = this.treeData.nodes?.map(person => `
-            <div class="tree-list-item ${this.selectedNode === person.id ? 'selected' : ''}" data-id="${person.id}">
-                <div class="person-avatar ${person.gender}">${person.name.charAt(0)}</div>
-                <div class="person-info">
-                    <strong>${person.name}</strong>
-                    <p>${this.calculateAge(person.birthDate, person.deathDate)} anos</p>
-                </div>
-            </div>
-        `).join('') || '';
-    }
-    
-    calculateAge(birthDate, deathDate) {
-        if (!birthDate) return '?';
-        
-        const birth = new Date(birthDate);
-        const end = deathDate ? new Date(deathDate) : new Date();
-        
-        const years = end.getFullYear() - birth.getFullYear();
-        const months = end.getMonth() - birth.getMonth();
-        
-        return months < 0 ? years - 1 : years;
-    }
-    
-    getParentsNames(parentIds) {
-        if (!parentIds || parentIds.length === 0) return '-';
-        
-        return parentIds.map(id => {
-            const parent = this.treeData.nodes.find(p => p.id === id);
-            return parent?.name || 'Desconhecido';
-        }).join(', ');
-    }
-    
-    calculateGenerations() {
-        // Cálculo simplificado de gerações
-        const generations = new Set();
-        this.treeData.nodes?.forEach(person => {
-            if (person.birthDate) {
-                const birthYear = new Date(person.birthDate).getFullYear();
-                const generation = Math.floor((birthYear - 1900) / 25);
-                generations.add(generation);
+    addTreeStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .tree-container {
+                animation: fadeIn 0.3s ease;
             }
-        });
-        return generations.size;
-    }
-    
-    getOldestAge() {
-        let oldest = 0;
-        this.treeData.nodes?.forEach(person => {
-            if (person.birthDate) {
-                const age = this.calculateAge(person.birthDate, person.deathDate);
-                if (typeof age === 'number' && age > oldest) {
-                    oldest = age;
+            
+            .tree-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: var(--spacing-lg);
+                flex-wrap: wrap;
+                gap: var(--spacing-md);
+            }
+            
+            .tree-header h2 {
+                font-size: 1.5rem;
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-sm);
+            }
+            
+            .header-actions {
+                display: flex;
+                gap: var(--spacing-md);
+                align-items: center;
+            }
+            
+            .view-selector select {
+                padding: 8px 12px;
+                border: 1px solid var(--border-color);
+                border-radius: var(--border-radius);
+                background: var(--surface-color);
+                color: var(--text-color);
+            }
+            
+            .members-header {
+                display: flex;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                flex-wrap: wrap;
+            }
+            
+            .members-list {
+                display: flex;
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+            
+            .member-card {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-lg);
+                padding: var(--spacing-lg);
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--border-radius);
+                transition: var(--transition);
+            }
+            
+            .member-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+                border-color: var(--primary-color);
+            }
+            
+            .member-avatar {
+                position: relative;
+                width: 70px;
+                height: 70px;
+                flex-shrink: 0;
+            }
+            
+            .member-avatar img {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid var(--border-color);
+            }
+            
+            .user-badge {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                background: var(--primary-color);
+                color: #000;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+            }
+            
+            .member-info {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .member-main {
+                margin-bottom: var(--spacing-sm);
+            }
+            
+            .member-name {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            
+            .member-nickname {
+                color: var(--text-secondary);
+                font-style: italic;
+                margin-bottom: 4px;
+            }
+            
+            .member-tags {
+                display: flex;
+                gap: var(--spacing-xs);
+                flex-wrap: wrap;
+            }
+            
+            .relationship-tag, .generation-tag {
+                font-size: 0.75rem;
+                padding: 2px 8px;
+                border-radius: 12px;
+                display: inline-block;
+            }
+            
+            .relationship-tag {
+                background: rgba(255, 215, 0, 0.1);
+                color: var(--primary-color);
+            }
+            
+            .generation-tag {
+                background: rgba(66, 133, 244, 0.1);
+                color: #4285F4;
+            }
+            
+            .member-details {
+                display: flex;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-sm);
+                flex-wrap: wrap;
+            }
+            
+            .member-detail {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.85rem;
+                color: var(--text-secondary);
+            }
+            
+            .member-detail .age {
+                color: var(--primary-color);
+                font-weight: 500;
+            }
+            
+            .member-connections {
+                display: flex;
+                gap: var(--spacing-sm);
+                flex-wrap: wrap;
+            }
+            
+            .connection {
+                font-size: 0.75rem;
+                padding: 2px 8px;
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            .member-actions {
+                display: flex;
+                gap: var(--spacing-xs);
+            }
+            
+            .tree-view {
+                margin-top: var(--spacing-lg);
+            }
+            
+            .tree-controls {
+                display: flex;
+                gap: var(--spacing-sm);
+                margin-bottom: var(--spacing-lg);
+                flex-wrap: wrap;
+            }
+            
+            .tree-canvas-container {
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--border-radius);
+                padding: var(--spacing-lg);
+                min-height: 500px;
+                overflow: auto;
+            }
+            
+            .tree-placeholder {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 400px;
+                color: var(--text-secondary);
+                text-align: center;
+            }
+            
+            .tree-placeholder i {
+                font-size: 4rem;
+                margin-bottom: var(--spacing-lg);
+                color: var(--border-color);
+            }
+            
+            .tree-placeholder .hint {
+                font-size: 0.9rem;
+                margin-top: var(--spacing-sm);
+            }
+            
+            .tree-levels {
+                display: flex;
+                flex-direction: column;
+                gap: var(--spacing-xl);
+            }
+            
+            .tree-level {
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: var(--spacing-lg);
+            }
+            
+            .tree-level h4 {
+                color: var(--primary-color);
+                margin-bottom: var(--spacing-md);
+                padding-bottom: var(--spacing-sm);
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .level-members {
+                display: flex;
+                gap: var(--spacing-lg);
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .tree-node {
+                background: var(--background-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--border-radius);
+                padding: var(--spacing-md);
+                text-align: center;
+                min-width: 120px;
+                transition: var(--transition);
+            }
+            
+            .tree-node:hover {
+                border-color: var(--primary-color);
+                transform: translateY(-2px);
+            }
+            
+            .tree-node.user-node {
+                border: 2px solid var(--primary-color);
+                background: rgba(255, 215, 0, 0.05);
+            }
+            
+            .node-avatar {
+                width: 60px;
+                height: 60px;
+                margin: 0 auto var(--spacing-sm);
+            }
+            
+            .node-avatar img {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            
+            .node-info {
+                font-size: 0.9rem;
+            }
+            
+            .node-relationship {
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                margin-top: 4px;
+            }
+            
+            /* Modal específico da árvore */
+            .wide-modal {
+                max-width: 800px;
+            }
+            
+            .form-tabs {
+                display: flex;
+                gap: var(--spacing-xs);
+                margin-bottom: var(--spacing-lg);
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: var(--spacing-sm);
+            }
+            
+            .form-tab {
+                padding: var(--spacing-sm) var(--spacing-lg);
+                border: none;
+                background: transparent;
+                color: var(--text-secondary);
+                cursor: pointer;
+                border-radius: var(--border-radius) var(--border-radius) 0 0;
+                transition: var(--transition);
+            }
+            
+            .form-tab:hover {
+                background: var(--surface-color);
+            }
+            
+            .form-tab.active {
+                background: var(--primary-color);
+                color: #000;
+                font-weight: 600;
+            }
+            
+            .form-tab-content {
+                display: none;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            .form-tab-content.active {
+                display: block;
+            }
+            
+            .multi-select {
+                max-height: 200px;
+                overflow-y: auto;
+                padding: var(--spacing-sm);
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--border-radius);
+                display: flex;
+                flex-direction: column;
+                gap: var(--spacing-xs);
+            }
+            
+            .empty-members {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: var(--spacing-xl);
+                text-align: center;
+                color: var(--text-secondary);
+            }
+            
+            .empty-members i {
+                font-size: 3rem;
+                margin-bottom: var(--spacing-lg);
+                color: var(--border-color);
+            }
+            
+            @media (max-width: 768px) {
+                .tree-header {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                
+                .header-actions {
+                    flex-direction: column;
+                }
+                
+                .member-card {
+                    flex-direction: column;
+                    text-align: center;
+                }
+                
+                .member-details, .member-connections {
+                    justify-content: center;
+                }
+                
+                .member-actions {
+                    width: 100%;
+                    justify-content: center;
+                }
+                
+                .level-members {
+                    gap: var(--spacing-md);
+                }
+                
+                .tree-node {
+                    min-width: 100px;
                 }
             }
-        });
-        return oldest;
-    }
-    
-    selectNode(nodeId) {
-        this.selectedNode = nodeId;
-        this.renderTreeList();
+        `;
         
-        // Mostrar detalhes da pessoa selecionada
-        this.showPersonDetails(nodeId);
-    }
-    
-    showPersonDetails(nodeId) {
-        const person = this.treeData.nodes.find(p => p.id === nodeId);
-        if (!person) return;
-        
-        // Implementar detalhes da pessoa
-        console.log('Detalhes da pessoa:', person);
-    }
-    
-    async importFromContacts() {
-        const contacts = this.app.modules.contacts.contacts;
-        
-        contacts.forEach(contact => {
-            if (contact.name && !this.treeData.nodes.find(p => p.name === contact.name)) {
-                this.addPerson({
-                    name: contact.name,
-                    gender: 'other',
-                    birthDate: contact.birthday || '',
-                    notes: `Importado de contatos: ${contact.email || ''}`
-                });
-            }
-        });
-    }
-    
-    async exportToPDF() {
-        // Implementar exportação para PDF
-        console.log('Exportando árvore para PDF...');
-    }
-    
-    async exportToImage() {
-        // Implementar exportação para imagem
-        const svg = document.querySelector('#tree-diagram svg');
-        if (svg) {
-            const svgData = new XMLSerializer().serializeToString(svg);
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                const png = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = 'arvore-genealogica.png';
-                link.href = png;
-                link.click();
-            };
-            
-            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-        }
-    }
-    
-    setupEventListeners() {
-        document.addEventListener('click', (e) => {
-            // Mudar vista
-            if (e.target.closest('.view-btn')) {
-                const view = e.target.closest('.view-btn').dataset.view;
-                this.view = view;
-                this.renderView();
-            }
-
-         // Adicionar pessoa
-            if (e.target.id === 'add-person-btn') {
-                this.openPersonModal();
-            }
-            
-            // Importar de contatos
-            if (e.target.id === 'import-tree-btn') {
-                this.importFromContacts();
-            }
-            
-            // Exportar
-            if (e.target.id === 'export-tree-btn') {
-                this.exportToImage();
-            }
-            
-            // Selecionar pessoa na lista
-            if (e.target.closest('.tree-list-item')) {
-                const personId = e.target.closest('.tree-list-item').dataset.id;
-                this.selectNode(personId);
-            }
-            
-            // Ações na lista
-            if (e.target.closest('[data-action]')) {
-                const button = e.target.closest('[data-action]');
-                const action = button.dataset.action;
-                const id = button.dataset.id;
-                
-                switch (action) {
-                    case 'edit':
-                        this.openPersonModal(id);
-                        break;
-                    case 'delete':
-                        if (confirm('Tem certeza que deseja excluir esta pessoa?')) {
-                            this.deletePerson(id);
-                        }
-                        break;
-                }
-            }
-        });
-    }
-    
-    openPersonModal(personId = null) {
-        // Implementar abertura do modal de pessoa
-        console.log('Abrir modal de pessoa:', personId);
-    }
-    
-    show() {
-        document.getElementById('tree-container').style.display = 'block';
-        this.render();
-    }
-    
-    hide() {
-        const container = document.getElementById('tree-container');
-        if (container) {
-            container.style.display = 'none';
-        }
+        document.head.appendChild(style);
     }
 }
-```
 
+// Inicializar sistema de árvore genealógica
+const familyTreeSystem = new FamilyTreeSystem();
+window.familyTreeSystem = familyTreeSystem;
+
+// Integração com o app principal
+if (typeof app !== 'undefined') {
+    app.renderTreePage = async function() {
+        await familyTreeSystem.renderTreePage();
+    };
+}
+
+export default familyTreeSystem;
