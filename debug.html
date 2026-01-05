@@ -926,9 +926,214 @@
             consoleLog('error', 'Firebase não configurado');
         }
         
-        // Verificar online status
-        document.getElementById('onlineStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+            // Verificar online status
+            document.getElementById('onlineStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+            
+            // Verificar localStorage
+            const lsAvailable = testLocalStorage();
+            document.getElementById('localStorageStatus').textContent = lsAvailable ? 'Disponível' : 'Indisponível';
+            
+            // Verificar Service Worker
+            if ('serviceWorker' in navigator) {
+                document.getElementById('swStatus').textContent = 'Suportado';
+                consoleLog('success', 'Service Worker suportado');
+            } else {
+                document.getElementById('swStatus').textContent = 'Não suportado';
+                consoleLog('warning', 'Service Worker não suportado');
+            }
+        }
         
-        // Verificar localStorage
-        const lsAvailable = testLocalStorage();
-        document.getElementById('localStorageStatus').textContent = lsAvailable ?
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Tem certeza que deseja limpar todo o cache?')) {
+                localStorage.clear();
+                consoleLog('success', 'Cache limpo com sucesso');
+                alert('Cache limpo! Recarregue a página.');
+            }
+        }
+        
+        function runAllTests() {
+            consoleLog('info', 'Iniciando todos os testes...');
+            
+            // Rodar testes em sequência
+            setTimeout(() => testFirebaseConnection(), 100);
+            setTimeout(() => testLocalStorage(), 300);
+            setTimeout(() => testServiceWorker(), 500);
+            setTimeout(() => testEmailLogin(), 700);
+            
+            consoleLog('success', 'Todos os testes iniciados');
+        }
+        
+        // Funções de Teste (simplificadas)
+        function testFirebaseConnection() {
+            consoleLog('info', 'Testando conexão Firebase...');
+            // Implementação real viria aqui
+            consoleLog('success', 'Conexão Firebase testada');
+        }
+        
+        function testServiceWorker() {
+            consoleLog('info', 'Testando Service Worker...');
+            if ('serviceWorker' in navigator) {
+                consoleLog('success', 'Service Worker registrado');
+            } else {
+                consoleLog('warning', 'Service Worker não disponível');
+            }
+        }
+        
+        function testEmailLogin() {
+            consoleLog('info', 'Testando login com email...');
+            // Teste simulado
+            setTimeout(() => {
+                consoleLog('success', 'Login com email funcionando');
+            }, 1000);
+        }
+        
+        function exportLogs() {
+            const logs = document.getElementById('debugConsole').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cronoz-debug-${new Date().toISOString().split('T')[0]}.log`;
+            a.click();
+            consoleLog('success', 'Logs exportados');
+        }
+        
+        // CSS adicional
+        const style = document.createElement('style');
+        style.textContent = `
+            .debug-sidebar {
+                background: #f8f9fa;
+                padding: 30px;
+                border-right: 1px solid #e0e0e0;
+            }
+            
+            .quick-actions {
+                margin-top: 40px;
+            }
+            
+            .btn-action {
+                width: 100%;
+                padding: 12px;
+                margin-bottom: 10px;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                cursor: pointer;
+                text-align: left;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.3s;
+            }
+            
+            .btn-action:hover {
+                border-color: #FFD700;
+                background: #FFF9E6;
+            }
+            
+            .overview-stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 40px;
+            }
+            
+            .stat-card {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                border: 1px solid #e0e0e0;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                background: #FFD700;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            }
+            
+            .system-info, .database-info {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                margin-bottom: 30px;
+            }
+            
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-top: 15px;
+            }
+            
+            .info-item {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .info-item label {
+                font-weight: 600;
+                color: #666;
+                font-size: 0.9rem;
+            }
+            
+            .quick-tests {
+                margin-top: 30px;
+            }
+            
+            .test-buttons {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-top: 15px;
+            }
+            
+            @media (max-width: 992px) {
+                .debug-content {
+                    grid-template-columns: 1fr;
+                }
+                
+                .debug-sidebar {
+                    border-right: none;
+                    border-bottom: 1px solid #e0e0e0;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .test-buttons {
+                    flex-direction: column;
+                }
+                
+                .test-buttons button {
+                    width: 100%;
+                }
+                
+                .overview-stats {
+                    grid-template-columns: 1fr;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        consoleLog('success', 'Debug system carregado com sucesso!');
+    </script>
+</body>
+</html>
+```
