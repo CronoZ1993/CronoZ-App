@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#d4af37">
+    
+    <!-- Firebase v9 completo via CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 </head>
 <body>
     <!-- TELA DE LOGIN -->
@@ -55,52 +61,52 @@
             </div>
         </div>
     </div>
-    
+
     <!-- TELA DE REGISTRO -->
-    <div id="register-screen" class="screen">
-        <div class="login-container">
-            <div class="logo-section">
-                <div class="logo-placeholder">
-                    <i class="fas fa-crown"></i>
-                    <span class="logo-text">CronoZ</span>
-                </div>
-                <p class="app-slogan">Junte-se a nós</p>
+<div id="register-screen" class="screen">
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-placeholder">
+                <i class="fas fa-crown"></i>
+                <span class="logo-text">CronoZ</span>
+            </div>
+            <p class="app-slogan">Junte-se a nós</p>
+        </div>
+        
+        <div class="login-form">
+            <h2>Criar Conta</h2>
+            <div id="register-error" class="error-message"></div>
+            
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="register-name" placeholder="Nome completo" required>
             </div>
             
-            <div class="login-form">
-                <h2>Criar Conta</h2>
-                <div id="register-error" class="error-message"></div>
-                
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="register-name" placeholder="Nome completo" required>
-                </div>
-                
-                <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="register-email" placeholder="Email" required>
-                </div>
-                
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required>
-                </div>
-                
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="register-confirm" placeholder="Confirmar senha" required>
-                </div>
-                
-                <button id="btn-create-account" class="btn-primary">
-                    <i class="fas fa-user-plus"></i> Criar Conta
-                </button>
-                
-                <button id="btn-back-to-login" class="btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Voltar para login
-                </button>
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="register-email" placeholder="Email" required>
             </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="register-confirm" placeholder="Confirmar senha" required>
+            </div>
+            
+            <button id="btn-create-account" class="btn-primary">
+                <i class="fas fa-user-plus"></i> Criar Conta
+            </button>
+            
+            <button id="btn-back-to-login" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar para login
+            </button>
         </div>
     </div>
+</div>
 
 <!-- APP PRINCIPAL -->
 <div id="app-screen" class="screen">
@@ -133,128 +139,128 @@
             </button>
         </div>
     </header>
-    
+
     <!-- MENU LATERAL -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="user-info">
-                <img id="user-avatar" src="assets/default-avatar.png" alt="Avatar">
-                <div>
-                    <h3 id="user-name">Usuário</h3>
-                    <p id="user-email">email@exemplo.com</p>
-                </div>
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="user-info">
+            <img id="user-avatar" src="assets/default-avatar.png" alt="Avatar">
+            <div>
+                <h3 id="user-name">Usuário</h3>
+                <p id="user-email">email@exemplo.com</p>
             </div>
-            <button class="close-menu" id="btn-close-menu">
-                <i class="fas fa-times"></i>
-            </button>
         </div>
-        
-        <nav class="sidebar-menu">
-            <a href="#" class="menu-item active" data-page="home">
-                <i class="fas fa-home"></i> Início
-            </a>
-            <a href="#" class="menu-item" data-page="contacts">
-                <i class="fas fa-address-book"></i> Contatos
-            </a>
-            <a href="#" class="menu-item" data-page="chat">
-                <i class="fas fa-comments"></i> Chat
-            </a>
-            <a href="#" class="menu-item" data-page="calendar">
-                <i class="fas fa-calendar-alt"></i> Calendário
-            </a>
-            <a href="#" class="menu-item" data-page="tree">
-                <i class="fas fa-tree"></i> Árvore Genealógica
-            </a>
-            <a href="#" class="menu-item" data-page="albums">
-                <i class="fas fa-images"></i> Álbuns
-            </a>
-            <a href="#" class="menu-item" data-page="settings">
-                <i class="fas fa-cog"></i> Configurações
-            </a>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <button class="btn-logout" id="btn-logout">
-                <i class="fas fa-sign-out-alt"></i> Sair
-            </button>
-        </div>
+        <button class="close-menu" id="btn-close-menu">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
     
-    <!-- CONTEÚDO PRINCIPAL -->
-    <main class="main-content" id="main-content">
-        <!-- PÁGINA INÍCIO -->
-        <div class="page active" id="page-home">
-            <div class="page-header">
-                <h1>Seu Dashboard</h1>
-                <p id="welcome-message">Bem-vindo de volta!</p>
+    <nav class="sidebar-menu">
+        <a href="#" class="menu-item active" data-page="home">
+            <i class="fas fa-home"></i> Início
+        </a>
+        <a href="#" class="menu-item" data-page="contacts">
+            <i class="fas fa-address-book"></i> Contatos
+        </a>
+        <a href="#" class="menu-item" data-page="chat">
+            <i class="fas fa-comments"></i> Chat
+        </a>
+        <a href="#" class="menu-item" data-page="calendar">
+            <i class="fas fa-calendar-alt"></i> Calendário
+        </a>
+        <a href="#" class="menu-item" data-page="tree">
+            <i class="fas fa-tree"></i> Árvore Genealógica
+        </a>
+        <a href="#" class="menu-item" data-page="albums">
+            <i class="fas fa-images"></i> Álbuns
+        </a>
+        <a href="#" class="menu-item" data-page="settings">
+            <i class="fas fa-cog"></i> Configurações
+        </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+        <button class="btn-logout" id="btn-logout">
+            <i class="fas fa-sign-out-alt"></i> Sair
+        </button>
+    </div>
+</div>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="main-content" id="main-content">
+    <!-- PÁGINA INÍCIO -->
+    <div class="page active" id="page-home">
+        <div class="page-header">
+            <h1>Seu Dashboard</h1>
+            <p id="welcome-message">Bem-vindo de volta!</p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- Seção 1: Perfil -->
+            <div class="card profile-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-user"></i> Seu Perfil</h2>
+                    <button class="btn-edit" id="btn-edit-profile">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="profile-info">
+                        <img id="profile-avatar" src="assets/default-avatar.png" alt="Avatar">
+                        <div>
+                            <h3 id="profile-name">Nome do Usuário</h3>
+                            <p id="profile-birthday">Aniversário: --/--/----</p>
+                            <p id="profile-phone">Telefone: Não informado</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="dashboard-grid">
-                <!-- Seção 1: Perfil -->
-                <div class="card profile-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-user"></i> Seu Perfil</h2>
-                        <button class="btn-edit" id="btn-edit-profile">
-                            <i class="fas fa-edit"></i>
-                        </button>
+
+                    <!-- Seção 2: Mensagem Aniversário -->
+        <div class="card birthday-card">
+            <div class="card-header">
+                <h2><i class="fas fa-birthday-cake"></i> Contagem Regressiva</h2>
+            </div>
+            <div class="card-body">
+                <p id="birthday-message">Carregando mensagem especial...</p>
+                <div class="countdown" id="countdown">
+                    <div class="countdown-item">
+                        <span id="days">--</span>
+                        <small>dias</small>
                     </div>
-                    <div class="card-body">
-                        <div class="profile-info">
-                            <img id="profile-avatar" src="assets/default-avatar.png" alt="Avatar">
-                            <div>
-                                <h3 id="profile-name">Nome do Usuário</h3>
-                                <p id="profile-birthday">Aniversário: --/--/----</p>
-                                <p id="profile-phone">Telefone: Não informado</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Seção 2: Mensagem Aniversário -->
-                <div class="card birthday-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-birthday-cake"></i> Contagem Regressiva</h2>
-                    </div>
-                    <div class="card-body">
-                        <p id="birthday-message">Carregando mensagem especial...</p>
-                        <div class="countdown" id="countdown">
-                            <div class="countdown-item">
-                                <span id="days">--</span>
-                                <small>dias</small>
-                            </div>
-                            <div class="countdown-item">
-                                <span id="hours">--</span>
-                                <small>horas</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Seção 3: Aniversários Próximos -->
-                <div class="card upcoming-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-gift"></i> Próximos Aniversários</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="upcoming-list" id="upcoming-birthdays">
-                            <p>Nenhum aniversário próximo</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Seção 4: Eventos Próximos -->
-                <div class="card events-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-calendar-check"></i> Próximos Eventos</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="events-list" id="upcoming-events">
-                            <p>Nenhum evento agendado</p>
-                        </div>
+                    <div class="countdown-item">
+                        <span id="hours">--</span>
+                        <small>horas</small>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Seção 3: Aniversários Próximos -->
+        <div class="card upcoming-card">
+            <div class="card-header">
+                <h2><i class="fas fa-gift"></i> Próximos Aniversários</h2>
+            </div>
+            <div class="card-body">
+                <div class="upcoming-list" id="upcoming-birthdays">
+                    <p>Nenhum aniversário próximo</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção 4: Eventos Próximos -->
+        <div class="card events-card">
+            <div class="card-header">
+                <h2><i class="fas fa-calendar-check"></i> Próximos Eventos</h2>
+            </div>
+            <div class="card-body">
+                <div class="events-list" id="upcoming-events">
+                    <p>Nenhum evento agendado</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- PÁGINA CONTATOS -->
 <div class="page" id="page-contacts">
@@ -275,7 +281,6 @@
             <i class="fas fa-search"></i>
             <input type="text" id="contact-search" placeholder="Buscar contatos...">
         </div>
-        
         <div class="filter-tabs">
             <button class="filter-tab active" data-filter="all">
                 <i class="fas fa-users"></i> Todos
@@ -304,7 +309,7 @@
     </div>
 </div>
 
-<!-- PÁGINA CHAT -->
+    <!-- PÁGINA CHAT -->
 <div class="page" id="page-chat">
     <div class="page-header">
         <h1><i class="fas fa-comments"></i> Chat</h1>
@@ -325,12 +330,10 @@
                     <i class="fas fa-users"></i> Grupos
                 </button>
             </div>
-            
             <div class="chat-search">
                 <input type="text" placeholder="Buscar conversas...">
                 <i class="fas fa-search"></i>
             </div>
-            
             <div class="conversations-list" id="conversations-list">
                 <!-- Conversas carregadas via JavaScript -->
             </div>
@@ -342,7 +345,6 @@
                 <h3>Selecione uma conversa</h3>
                 <p>Ou inicie uma nova conversa com seus contatos</p>
             </div>
-            
             <div class="chat-window" id="chat-window" style="display: none;">
                 <div class="chat-header">
                     <div class="chat-user-info">
@@ -358,11 +360,9 @@
                         <button><i class="fas fa-ellipsis-v"></i></button>
                     </div>
                 </div>
-                
                 <div class="chat-messages" id="chat-messages">
                     <!-- Mensagens carregadas via JavaScript -->
                 </div>
-                
                 <div class="chat-input">
                     <button class="btn-emoji"><i class="fas fa-smile"></i></button>
                     <input type="text" placeholder="Digite sua mensagem...">
@@ -393,31 +393,23 @@
             <h2 id="current-month">Janeiro 2024</h2>
             <button id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
         </div>
-        
         <div class="calendar-filters">
             <select id="calendar-view">
                 <option value="month">Mês</option>
                 <option value="week">Semana</option>
                 <option value="day">Dia</option>
             </select>
-            
             <button class="btn-icon" id="btn-export-calendar">
                 <i class="fas fa-download"></i> Exportar
             </button>
         </div>
     </div>
-    
-    <div class="calendar-container">
+
+        <div class="calendar-container">
         <div class="calendar-weekdays">
-            <div>Dom</div>
-            <div>Seg</div>
-            <div>Ter</div>
-            <div>Qua</div>
-            <div>Qui</div>
-            <div>Sex</div>
-            <div>Sáb</div>
+            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div>
+            <div>Qui</div><div>Sex</div><div>Sáb</div>
         </div>
-        
         <div class="calendar-grid" id="calendar-grid">
             <!-- Dias do mês gerados via JavaScript -->
         </div>
@@ -463,7 +455,6 @@
                         <input type="text" placeholder="Buscar membros...">
                     </div>
                 </div>
-                
                 <div class="members-list" id="family-members">
                     <!-- Membros carregados via JavaScript -->
                 </div>
@@ -511,7 +502,6 @@
                     <input type="text" placeholder="Buscar álbuns...">
                 </div>
             </div>
-            
             <div class="albums-grid">
                 <!-- Álbuns carregados via JavaScript -->
                 <div class="album-card new-album">
@@ -531,277 +521,202 @@
     </div>
 </div>
 
-<!-- PÁGINA CONFIGURAÇÕES -->
-<div class="page" id="page-settings">
-    <div class="page-header">
-        <h1><i class="fas fa-cog"></i> Configurações</h1>
-    </div>
-    
-    <div class="settings-container">
-        <div class="settings-section">
-            <h2><i class="fas fa-palette"></i> Aparência</h2>
-            
-            <div class="setting-item">
-                <label>Tema</label>
-                <select id="theme-select">
-                    <option value="auto">Sistema</option>
-                    <option value="light">Claro</option>
-                    <option value="dark">Escuro</option>
-                </select>
+        <!-- PÁGINA CONFIGURAÇÕES -->
+    <div class="page" id="page-settings">
+        <div class="page-header">
+            <h1><i class="fas fa-cog"></i> Configurações</h1>
+        </div>
+        
+        <div class="settings-container">
+            <!-- Configurações de Aparência -->
+            <div class="settings-section">
+                <h2><i class="fas fa-palette"></i> Aparência</h2>
+                <div class="setting-item">
+                    <label>Tema</label>
+                    <select id="theme-select">
+                        <option value="auto">Sistema</option>
+                        <option value="light">Claro</option>
+                        <option value="dark">Escuro</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Cor de Destaque</label>
+                    <div class="color-picker">
+                        <input type="color" id="color-picker" value="#d4af37">
+                        <input type="text" id="color-hex" value="#d4af37" maxlength="7">
+                        <button id="btn-reset-color" class="btn-small">
+                            <i class="fas fa-undo"></i> Padrão
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <div class="setting-item">
-                <label>Cor de Destaque</label>
-                <div class="color-picker">
-                    <input type="color" id="color-picker" value="#d4af37">
-                    <input type="text" id="color-hex" value="#d4af37" maxlength="7">
-                    <button id="btn-reset-color" class="btn-small">
-                        <i class="fas fa-undo"></i> Padrão
+            <!-- Configurações de Conta -->
+            <div class="settings-section">
+                <h2><i class="fas fa-user-cog"></i> Conta</h2>
+                <div class="setting-item">
+                    <label>Email</label>
+                    <input type="email" id="setting-email" readonly>
+                </div>
+                <div class="setting-item">
+                    <label>Alterar Senha</label>
+                    <button class="btn-secondary" id="btn-change-password">
+                        <i class="fas fa-key"></i> Alterar
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <label>Backup</label>
+                    <button class="btn-secondary" id="btn-backup">
+                        <i class="fas fa-download"></i> Fazer Backup
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <label>Vincular Google</label>
+                    <button class="btn-google" id="btn-link-google">
+                        <i class="fab fa-google"></i> Vincular
                     </button>
                 </div>
             </div>
-        </div>
-        
-        <div class="settings-section">
-            <h2><i class="fas fa-user-cog"></i> Conta</h2>
             
-            <div class="setting-item">
-                <label>Email</label>
-                <input type="email" id="setting-email" readonly>
-            </div>
-            
-            <div class="setting-item">
-                <label>Alterar Senha</label>
-                <button class="btn-secondary" id="btn-change-password">
-                    <i class="fas fa-key"></i> Alterar
-                </button>
-            </div>
-            
-            <div class="setting-item">
-                <label>Backup</label>
-                <button class="btn-secondary" id="btn-backup">
-                    <i class="fas fa-download"></i> Fazer Backup
-                </button>
-            </div>
-            
-            <div class="setting-item">
-                <label>Vincular Google</label>
-                <button class="btn-google" id="btn-link-google">
-                    <i class="fab fa-google"></i> Vincular
-                </button>
+            <!-- Configurações de Notificações -->
+            <div class="settings-section">
+                <h2><i class="fas fa-bell"></i> Notificações</h2>
+                <div class="setting-item toggle">
+                    <label>Notificações de Aniversário</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-birthday" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item toggle">
+                    <label>Notificações de Eventos</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-events" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item toggle">
+                    <label>Som de Alarme</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-alarm" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
-        
-        <div class="settings-section">
-            <h2><i class="fas fa-bell"></i> Notificações</h2>
-            
-            <div class="setting-item toggle">
-                <label>Notificações de Aniversário</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-birthday" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <div class="setting-item toggle">
-                <label>Notificações de Eventos</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-events" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <div class="setting-item toggle">
-                <label>Som de Alarme</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-alarm" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </div>
-        
-        <div class="settings-section">
-            <h2><i class="fas fa-shield-alt"></i> Privacidade</h2>
-            
-            <div class="setting-item">
-                <label>Quem pode ver seu perfil</label>
-                <select id="privacy-profile">
-                    <option value="public">Todos</option>
-                    <option value="contacts">Apenas Contatos</option>
-                    <option value="family">Apenas Família</option>
-                    <option value="private">Apenas Eu</option>
-                </select>
-            </div>
-            
-            <div class="setting-item">
-                <label>Quem pode ver seu calendário</label>
-                <select id="privacy-calendar">
-                    <option value="contacts">Apenas Contatos</option>
-                    <option value="family">Apenas Família</option>
-                    <option value="private">Apenas Eu</option>
-                </select>
-            </div>
-        </div>
+    </div>
+</main>
 
-                <div class="settings-section">
-                    <h2><i class="fas fa-dollar-sign"></i> Monetização</h2>
-                    
-                    <div class="setting-item">
-                        <label>Status</label>
-                        <span class="status-badge premium" id="premium-status">Gratuito</span>
-                    </div>
-                    
-                    <div class="premium-options">
-                        <div class="premium-card">
-                            <h3>Remover Anúncios</h3>
-                            <p class="price">R$ 9,90/mês</p>
-                            <button class="btn-primary">Assinar</button>
-                        </div>
-                        
-                        <div class="premium-card">
-                            <h3>Anual (Economize 20%)</h3>
-                            <p class="price">R$ 95,00/ano</p>
-                            <button class="btn-primary">Assinar</button>
-                        </div>
-                        
-                        <div class="premium-card">
-                            <h3>Vitalício</h3>
-                            <p class="price">R$ 299,00</p>
-                            <button class="btn-primary">Comprar</button>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <label>Código Promocional</label>
-                        <div class="promo-code">
-                            <input type="text" id="promo-code" placeholder="Digite o código">
-                            <button class="btn-primary" id="btn-redeem">Resgatar</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="settings-section">
-                    <h2><i class="fas fa-headset"></i> Suporte</h2>
-                    
-                    <button class="support-btn" id="btn-report">
-                        <i class="fas fa-bug"></i> Reportar Problema
-                    </button>
-                    
-                    <button class="support-btn" id="btn-help">
-                        <i class="fas fa-question-circle"></i> Central de Ajuda
-                    </button>
-                    
-                    <button class="support-btn" id="btn-tutorial">
-                        <i class="fas fa-graduation-cap"></i> Tutorial
-                    </button>
-                    
-                    <button class="support-btn" id="btn-terms">
-                        <i class="fas fa-file-contract"></i> Termos de Uso
-                    </button>
-                    
-                    <button class="support-btn" id="btn-faq">
-                        <i class="fas fa-comments"></i> FAQ
-                    </button>
-                </div>
-                
-                <div class="settings-section danger-zone">
-                    <h2><i class="fas fa-exclamation-triangle"></i> Zona de Perigo</h2>
-                    
-                    <button class="btn-danger" id="btn-delete-account">
-                        <i class="fas fa-trash"></i> Excluir Conta Permanentemente
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
-    
-    <!-- RODAPÉ DE NAVEGAÇÃO -->
-    <nav class="bottom-nav">
-        <a href="#" class="nav-item active" data-page="home">
-            <i class="fas fa-home"></i>
-            <span>Início</span>
-        </a>
-        <a href="#" class="nav-item" data-page="contacts">
-            <i class="fas fa-address-book"></i>
-            <span>Contatos</span>
-        </a>
-        <a href="#" class="nav-item" data-page="chat">
-            <i class="fas fa-comments"></i>
-            <span>Chat</span>
-        </a>
-        <a href="#" class="nav-item" data-page="calendar">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Calendário</span>
-        </a>
-        <a href="#" class="nav-item" data-page="tree">
-            <i class="fas fa-tree"></i>
-            <span>Árvore</span>
-        </a>
-    </nav>
-    
-    <!-- MODAIS E POPUPS -->
-    <div class="modal-overlay" id="modal-overlay"></div>
-    
-    <!-- Modal Editar Perfil -->
-    <div class="modal" id="modal-profile">
-        <div class="modal-header">
-            <h2><i class="fas fa-user-edit"></i> Editar Perfil</h2>
-            <button class="close-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <!-- Conteúdo do modal -->
-        </div>
+<!-- RODAPÉ DE NAVEGAÇÃO -->
+<nav class="bottom-nav">
+    <a href="#" class="nav-item active" data-page="home">
+        <i class="fas fa-home"></i>
+        <span>Início</span>
+    </a>
+    <a href="#" class="nav-item" data-page="contacts">
+        <i class="fas fa-address-book"></i>
+        <span>Contatos</span>
+    </a>
+    <a href="#" class="nav-item" data-page="chat">
+        <i class="fas fa-comments"></i>
+        <span>Chat</span>
+    </a>
+    <a href="#" class="nav-item" data-page="calendar">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Calendário</span>
+    </a>
+    <a href="#" class="nav-item" data-page="tree">
+        <i class="fas fa-tree"></i>
+        <span>Árvore</span>
+    </a>
+</nav>
+
+<!-- MODAIS E POPUPS -->
+<div class="modal-overlay" id="modal-overlay"></div>
+
+<!-- Modal Editar Perfil -->
+<div class="modal" id="modal-profile">
+    <div class="modal-header">
+        <h2><i class="fas fa-user-edit"></i> Editar Perfil</h2>
+        <button class="close-modal">&times;</button>
     </div>
-    
-    <!-- Modal Adicionar Contato -->
-    <div class="modal" id="modal-contact">
-        <div class="modal-header">
-            <h2><i class="fas fa-user-plus"></i> Novo Contato</h2>
-            <button class="close-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <!-- Conteúdo do modal -->
-        </div>
-    </div>
-    
-    <!-- Modal Adicionar Evento -->
-    <div class="modal" id="modal-event">
-        <div class="modal-header">
-            <h2><i class="fas fa-calendar-plus"></i> Novo Evento</h2>
-            <button class="close-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <!-- Conteúdo do modal -->
-        </div>
+    <div class="modal-body">
+        <!-- Conteúdo do modal -->
     </div>
 </div>
 
-<!-- TOAST NOTIFICAÇÕES -->
-<div class="toast-container" id="toast-container"></div>
-
-<!-- LOADING OVERLAY -->
-<div class="loading-overlay" id="loading-overlay">
-    <div class="spinner">
-        <i class="fas fa-crown fa-spin"></i>
+<!-- Modal Adicionar Contato -->
+<div class="modal" id="modal-contact">
+    <div class="modal-header">
+        <h2><i class="fas fa-user-plus"></i> Novo Contato</h2>
+        <button class="close-modal">&times;</button>
     </div>
-    <p>Carregando...</p>
+    <div class="modal-body">
+        <!-- Conteúdo do modal -->
+    </div>
 </div>
 
-    <!-- SCRIPTS -->
-    <!-- Firebase v9 modular via ES modules -->
+            <!-- Modal Adicionar Evento -->
+        <div class="modal" id="modal-event">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-plus"></i> Novo Evento</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Conteúdo do modal -->
+            </div>
+        </div>
+    </div>
     
-    <!-- Utilitários primeiro -->
+    <!-- TOAST NOTIFICAÇÕES -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- LOADING OVERLAY -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner">
+            <i class="fas fa-crown fa-spin"></i>
+        </div>
+        <p>Carregando...</p>
+    </div>
+    
+    <!-- SCRIPTS CORRIGIDOS -->
+    <!-- Inicialização do Firebase primeiro -->
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIvOoNLoVMqITyAVRI_9ASOIi9ANIlrkQ",
+            authDomain: "cronoz-app-2026.firebaseapp.com",
+            projectId: "cronoz-app-2026",
+            storageBucket: "cronoz-app-2026.firebasestorage.app",
+            messagingSenderId: "415635361208",
+            appId: "1:415635361208:web:2b51a784a800ddffdce715"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        
+        // Referências globais para Firebase services
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        
+        console.log("Firebase inicializado com sucesso!");
+    </script>
+    
+    <!-- Utilitários básicos -->
     <script src="utils.js"></script>
     
-    <!-- Módulos do App -->
-    <script type="module" src="auth.js"></script>
-    <script type="module" src="app.js"></script>
-    <script type="module" src="contacts.js"></script>
-    <script type="module" src="chat.js"></script>
-    <script type="module" src="calendar.js"></script>
-    <script type="module" src="tree.js"></script>
-    <script type="module" src="albums.js"></script>
-    <script type="module" src="settings.js"></script>
+    <!-- Script principal do app -->
+    <script src="app.js"></script>
+    
+    <!-- Módulos corrigidos (sem type="module") -->
+    <script src="auth.js"></script>
+    <script src="contacts.js"></script>
+    <script src="chat.js"></script>
+    <script src="calendar.js"></script>
+    <script src="tree.js"></script>
+    <script src="albums.js"></script>
+    <script src="settings.js"></script>
     
     <!-- Service Worker para PWA -->
     <script>
@@ -817,5 +732,6 @@
             });
         }
     </script>
+    
 </body>
 </html>
