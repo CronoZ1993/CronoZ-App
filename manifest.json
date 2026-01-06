@@ -1,92 +1,54 @@
 {
-  "name": "CronoZ",
-  "short_name": "CronoZ",
-  "description": "Seu app de vida completo - Contatos, Chat, Calendário e Árvore Genealógica",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#FFD700",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "assets/icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "assets/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Novo Contato",
-      "short_name": "Contato",
-      "description": "Adicionar novo contato",
-      "url": "/#contacts",
-      "icons": [{ "src": "assets/icons/contact-icon.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Novo Evento",
-      "short_name": "Evento",
-      "description": "Adicionar novo evento ao calendário",
-      "url": "/#calendar",
-      "icons": [{ "src": "assets/icons/calendar-icon.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Nova Conversa",
-      "short_name": "Chat",
-      "description": "Iniciar nova conversa",
-      "url": "/#chat",
-      "icons": [{ "src": "assets/icons/chat-icon.png", "sizes": "96x96" }]
-    }
-  ],
-  "categories": ["lifestyle", "productivity", "social"],
-  "screenshots": [
-    {
-      "src": "assets/screenshots/screenshot1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "assets/screenshots/screenshot2.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
-  "prefer_related_applications": false
+    "name": "CronoZ App",
+    "short_name": "CronoZ",
+    "description": "App completo com chat, contatos, calendário e árvore genealógica",
+    "start_url": "/CronoZ-App/",
+    "display": "standalone",
+    "background_color": "#121212",
+    "theme_color": "#d4af37",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "assets/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "scope": "/CronoZ-App/",
+    "categories": ["social", "productivity", "lifestyle"]
 }
