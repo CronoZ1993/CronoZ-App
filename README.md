@@ -1,124 +1,70 @@
-# 🕐 CronoZ App - Seu App de Vida Completo
+# CronoZ App - Aplicativo Web Completo
 
-![CronoZ Logo](assets/logo.png)
+![CronoZ Logo](assets/icon-192x192.png)
 
-Um aplicativo web PWA completo para gerenciar contatos, chat, calendário, árvore genealógica e álbuns de fotos.
+Um aplicativo web PWA (Progressive Web App) completo com chat, contatos, calendário, árvore genealógica e álbuns de fotos.
 
-## ✨ Funcionalidades
+## 🚀 Funcionalidades
 
-### 🔐 Autenticação
+### ✅ Autenticação
 - Login com Email/Senha
 - Login com Google
-- Sistema de registro
+- Registro de nova conta
 - Recuperação de senha
 
-### 👥 Contatos
+### 👥 Sistema de Contatos
 - Adicionar/editar/excluir contatos
 - Importar contatos do dispositivo
-- Categorizar (família, amigos, trabalho)
-- Bloquear/desbloquear contatos
-- Compartilhar informações
+- Categorização (família, trabalho, amigos)
+- Aniversários automáticos no calendário
+- Bloqueio/desbloqueio de contatos
 
 ### 💬 Chat em Tempo Real
-- Conversas 1:1
-- Grupos de chat
-- Mensagens com criptografia
+- Conversas individuais
+- Grupos de conversa
+- Envio de mensagens com Firebase
 - Emojis e figurinhas
-- Anexos de arquivos
+- Notificações em tempo real
 
 ### 📅 Calendário Inteligente
-- Eventos e aniversários
-- Fases da lua
-- Feriados automáticos
-- Estações do ano
-- Exportação para PDF/imagem
+- Visualização mensal/semanal/diária
+- Eventos com cores diferentes
+- Aniversários automáticos de contatos
+- Feriados destacados
+- Exportação para PDF/Imagem
 
 ### 🌳 Árvore Genealógica
-- Adicionar membros da família
+- Adicionar membros familiares
+- Definir relações de parentesco
 - Visualização em diagrama
-- Relacionamentos automáticos
 - Exportação para PDF
+- Integração com calendário de aniversários
 
 ### 📸 Álbuns de Fotos
-- Upload de fotos
+- Criar/editar/excluir álbuns
+- Upload de múltiplas fotos
 - Compartilhamento com contatos
-- Privacidade configurável
-- Download de imagens
+- Controle de privacidade
+- Download de fotos (se permitido)
 
 ### ⚙️ Configurações
-- Temas claro/escuro
-- Cores personalizáveis
+- Temas claro/escuro/automático
+- Personalização de cores
+- Configurações de privacidade
 - Sistema de backup
-- Monetização (anúncios/premium)
-- Multi-idioma
+- Assinatura Premium (remover anúncios)
 
-## 🚀 Tecnologias
+## 🛠️ Tecnologias
 
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+- **Frontend:** HTML5, CSS3, JavaScript ES6+
 - **Backend:** Firebase v9 (Firestore, Auth, Storage)
-- **PWA:** Service Worker, Manifest
-- **UI/UX:** CSS Grid, Flexbox, Font Awesome
-- **Hosting:** GitHub Pages / Firebase Hosting
+- **UI/UX:** Font Awesome, CSS Grid, Flexbox
+- **PWA:** Service Worker, Manifest.json
+- **Deploy:** GitHub Pages
 
-## 📋 Pré-requisitos
+## 📦 Instalação e Configuração
 
-1. **Conta Firebase** - [firebase.google.com](https://firebase.google.com)
-2. **Conta GitHub** - [github.com](https://github.com)
-3. **Editor de Código** - VS Code ou similar
-4. **Git instalado** - Para versionamento
-
-## 🔧 Configuração do Firebase
-
-### Passo 1: Criar Projeto Firebase
-1. Acesse [Console Firebase](https://console.firebase.google.com)
-2. Clique em "Adicionar projeto"
-3. Nome: `CronoZ-App`
-4. Ative Google Analytics (opcional)
-5. Criar projeto
-
-### Passo 2: Ativar Serviços
-No projeto criado, ative:
-
-#### Authentication
-- Métodos de login → Email/Senha ✅
-- Métodos de login → Google ✅
-- Configurar tela de login OAuth
-
-#### Firestore Database
-- Criar database em modo produção
-- Localização: `southamerica-east1` (Brasil)
-- Regras (temporárias):
-  ```javascript
-  rules_version = '2';
-  service cloud.firestore {
-    match /databases/{database}/documents {
-      match /{document=**} {
-        allow read, write: if true;
-      }
-    }
-  }
-
-
-**Copie e cole no final do mesmo arquivo `README.md`**
-
----
-
-## **16. `README.md` - PARTE 3/3 (FINAL)**
-
-```markdown
-## 🚀 Deploy no GitHub Pages
-
-### Passo 1: Preparar Repositório
+### 1. Clone o repositório
 ```bash
-# Clonar repositório
 git clone https://github.com/CronoZ1993/CronoZ-App.git
 cd CronoZ-App
-
-# Adicionar arquivos
-git add .
-
-# Commit inicial
-git commit -m "Initial commit: CronoZ App completo"
-
-# Enviar para GitHub
-git push origin main
