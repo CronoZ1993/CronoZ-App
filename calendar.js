@@ -1,1018 +1,725 @@
-// calendar.js - CALENDÁRIO INTELIGENTE (Parte 1/5)
+// calendar.js - Sistema de calendário inteligente
 import { auth, db } from './firebase-config.js';
 import { 
-    collection, 
-    doc, 
-    getDoc, 
-    getDocs,
-    setDoc, 
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    collection, doc, setDoc, getDoc, updateDoc, 
+    deleteDoc, query, where, orderBy, onSnapshot 
+} from './firebase-config.js';
+import { showLoading, hideLoading, showToast, formatDate } from './utils.js';
 
 class CalendarSystem {
     constructor() {
-        this.currentUser = null;
-        this.events = [];
         this.currentDate = new Date();
-        this.currentMonth = this.currentDate.getMonth();
-        this.currentYear = this.currentDate.getFullYear();
+        this.events = [];
         this.selectedDate = null;
         this.init();
     }
-
-    async init() {
-        await this.loadCurrentUser();
+    
+    init() {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                this.loadEvents();
+                this.setupEventListeners();
+                this.renderCalendar();
+            }
+        });
     }
-
-    async loadCurrentUser() {
-        const userData = localStorage.getItem('currentUser');
-        if (userData) {
-            this.currentUser = JSON.parse(userData);
+    
+    setupEventListeners() {
+        // Navigation buttons
+        const prevBtn = document.getElementById('btn-prev-month');
+        const nextBtn = document.getElementById('btn-next-month');
+        const todayBtn = document.getElementById('btn-today');
+        const addEventBtn = document.getElementById('btn-add-event');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => this.prevMonth());
+        if (nextBtn) nextBtn.addEventListener('click', () => this.nextMonth());
+        if (todayBtn) todayBtn.addEventListener('click', () => this.goToToday());
+        if (addEventBtn) addEventBtn.addEventListener('click', () => this.openAddEventModal());
+        
+        // View selector
+        const viewSelect = document.getElementById('calendar-view');
+        if (viewSelect) {
+            viewSelect.addEventListener('change', (e) => {
+                this.changeView(e.target.value);
+            });
+        }
+        
+        // Export button
+        const exportBtn = document.getElementById('btn-export-calendar');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportCalendar());
         }
     }
-
-    async renderCalendarPage() {
-        const mainContent = document.getElementById('mainContent');
-        
-        mainContent.innerHTML = `
-            <div class="calendar-container">
-                <!-- Cabeçalho do Calendário -->
-                <div class="calendar-header">
-                    <h2><i class="fas fa-calendar-alt"></i> Calendário</h2>
-                    <div class="header-controls">
-                        <button class="btn-secondary" onclick="calendarSystem.prevMonth()">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        
-                        <h3 id="currentMonthYear">${this.getMonthName(this.currentMonth)} ${this.currentYear}</h3>
-                        
-                        <button class="btn-secondary" onclick="calendarSystem.nextMonth()">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="header-actions">
-                        <button class="btn-primary" onclick="calendarSystem.goToToday()">
-                            <i class="fas fa-calendar-day"></i> Hoje
-                        </button>
-                        <button class="btn-primary" onclick="calendarSystem.showAddEventModal()">
-                            <i class="fas fa-plus"></i> Novo Evento
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Estação do Ano -->
-                <div class="season-indicator">
-                    <span id="seasonIcon">🌞</span>
-                    <span id="seasonName">Verão</span>
-                </div>
-
-                <!-- Calendário -->
-                <div class="calendar-grid" id="calendarGrid">
-                    <!-- Dias da semana -->
-                    <div class="weekday">Dom</div>
-                    <div class="weekday">Seg</div>
-                    <div class="weekday">Ter</div>
-                    <div class="weekday">Qua</div>
-                    <div class="weekday">Qui</div>
-                    <div class="weekday">Sex</div>
-                    <div class="weekday">Sáb</div>
-                    
-                    <!-- Dias serão renderizados aqui -->
-                </div>
-
-                <!-- Lista de Eventos do Mês -->
-                <div class="month-events">
-                    <h3><i class="fas fa-list"></i> Eventos deste Mês</h3>
-                    <div class="events-list" id="eventsList">
-                        <div class="loading-events">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Carregando eventos...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comemorações do Dia -->
-                <div class="celebrations-section">
-                    <h3><i class="fas fa-globe"></i> Comemorações Hoje</h3>
-                    <div class="celebrations-list" id="celebrationsList">
-                        <div class="celebration-item">
-                            <i class="fas fa-birthday-cake"></i>
-                            <span>Dia do Programador</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
+    
+    prevMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
         this.renderCalendar();
-        this.loadEvents();
-        this.updateSeason();
-        this.addCalendarStyles();
-    }
-
-// Métodos de renderização do calendário
-renderCalendar() {
-    const calendarGrid = document.getElementById('calendarGrid');
-    if (!calendarGrid) return;
-
-    // Limpar dias anteriores (mantendo os dias da semana)
-    const days = calendarGrid.querySelectorAll('.calendar-day');
-    days.forEach(day => day.remove());
-
-    // Calcular primeiro dia do mês
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const startingDay = firstDay.getDay(); // 0 = Domingo
-    
-    // Quantidade de dias no mês
-    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-    
-    // Adicionar dias vazios no início
-    for (let i = 0; i < startingDay; i++) {
-        const emptyDay = document.createElement('div');
-        emptyDay.className = 'calendar-day empty';
-        calendarGrid.appendChild(emptyDay);
     }
     
-    // Adicionar dias do mês
-    const today = new Date();
-    const todayString = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day';
-        dayElement.dataset.day = day;
-        dayElement.dataset.date = `${day}/${this.currentMonth + 1}/${this.currentYear}`;
-        
-        // Verificar se é hoje
-        const dateString = `${day}/${this.currentMonth + 1}/${this.currentYear}`;
-        if (dateString === todayString) {
-            dayElement.classList.add('today');
-        }
-        
-        // Verificar se é fim de semana
-        const dayOfWeek = new Date(this.currentYear, this.currentMonth, day).getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            dayElement.classList.add('weekend');
-        }
-        
-        // Número do dia
-        const dayNumber = document.createElement('div');
-        dayNumber.className = 'day-number';
-        dayNumber.textContent = day;
-        
-        // Indicadores de eventos
-        const indicators = document.createElement('div');
-        indicators.className = 'day-indicators';
-        
-        // Verificar eventos para este dia
-        const dayEvents = this.getEventsForDay(day);
-        dayEvents.forEach(event => {
-            const indicator = document.createElement('div');
-            indicator.className = `event-indicator ${event.type}`;
-            indicator.title = event.title;
-            indicators.appendChild(indicator);
-        });
-        
-        // Fase da lua (simplificado)
-        if (day === 1 || day === 15) {
-            const moonIndicator = document.createElement('div');
-            moonIndicator.className = 'moon-indicator';
-            moonIndicator.innerHTML = day === 1 ? '🌑' : '🌕';
-            moonIndicator.title = day === 1 ? 'Lua Nova' : 'Lua Cheia';
-            dayElement.appendChild(moonIndicator);
-        }
-        
-        dayElement.appendChild(dayNumber);
-        dayElement.appendChild(indicators);
-        
-        // Evento de clique
-        dayElement.addEventListener('click', () => {
-            this.selectDate(day);
-        });
-        
-        calendarGrid.appendChild(dayElement);
+    nextMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.renderCalendar();
     }
     
-    // Atualizar título
-    document.getElementById('currentMonthYear').textContent = 
-        `${this.getMonthName(this.currentMonth)} ${this.currentYear}`;
-}
-
-getEventsForDay(day) {
-    return this.events.filter(event => {
-        const eventDate = new Date(event.date);
-        return eventDate.getDate() === day && 
-               eventDate.getMonth() === this.currentMonth &&
-               eventDate.getFullYear() === this.currentYear;
-    });
-}
-
-getMonthName(monthIndex) {
-    const months = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    return months[monthIndex];
-}
-
-prevMonth() {
-    this.currentMonth--;
-    if (this.currentMonth < 0) {
-        this.currentMonth = 11;
-        this.currentYear--;
+    goToToday() {
+        this.currentDate = new Date();
+        this.renderCalendar();
     }
-    this.renderCalendar();
-    this.loadEvents();
-}
-
-nextMonth() {
-    this.currentMonth++;
-    if (this.currentMonth > 11) {
-        this.currentMonth = 0;
-        this.currentYear++;
-    }
-    this.renderCalendar();
-    this.loadEvents();
-}
-
-goToToday() {
-    const today = new Date();
-    this.currentMonth = today.getMonth();
-    this.currentYear = today.getFullYear();
-    this.renderCalendar();
-    this.loadEvents();
-    this.updateSeason();
-}
-
-updateSeason() {
-    const season = this.getSeason(this.currentMonth);
-    const seasonIcon = document.getElementById('seasonIcon');
-    const seasonName = document.getElementById('seasonName');
     
-    if (seasonIcon && seasonName) {
-        seasonIcon.textContent = season.emoji;
-        seasonName.textContent = season.name;
+    changeView(view) {
+        // Implement different view modes
+        console.log('Mudando para visualização:', view);
+        // This would change the calendar rendering
     }
-}
-
-getSeason(month) {
-    // Hemisfério sul
-    switch(month) {
-        case 11: // Dezembro
-        case 0:  // Janeiro
-        case 1:  // Fevereiro
-            return { name: 'Verão', emoji: '☀️' };
-        case 2:  // Março
-        case 3:  // Abril
-        case 4:  // Maio
-            return { name: 'Outono', emoji: '🍂' };
-        case 5:  // Junho
-        case 6:  // Julho
-        case 7:  // Agosto
-            return { name: 'Inverno', emoji: '❄️' };
-        case 8:  // Setembro
-        case 9:  // Outubro
-        case 10: // Novembro
-            return { name: 'Primavera', emoji: '🌸' };
-        default:
-            return { name: 'Verão', emoji: '☀️' };
-    }
-}
-
-// Métodos de eventos
-async loadEvents() {
-    try {
-        const userId = localStorage.getItem('userId');
-        if (!userId) return;
-
+    
+    async loadEvents() {
+        if (!auth.currentUser) return;
+        
+        const userId = auth.currentUser.uid;
         const eventsRef = collection(db, 'users', userId, 'events');
         const q = query(eventsRef, orderBy('date'));
-        const snapshot = await getDocs(q);
         
-        this.events = [];
-        snapshot.forEach(doc => {
-            this.events.push({ id: doc.id, ...doc.data() });
+        onSnapshot(q, (snapshot) => {
+            this.events = [];
+            snapshot.forEach(doc => {
+                this.events.push({ id: doc.id, ...doc.data() });
+            });
+            this.renderCalendar();
+            this.renderEventsList();
         });
-        
-        this.renderCalendar();
-        this.renderEventsList();
-        
-    } catch (error) {
-        console.error('Erro ao carregar eventos:', error);
     }
-}
+    
+    renderCalendar() {
+        const monthElement = document.getElementById('current-month');
+        const calendarGrid = document.getElementById('calendar-grid');
+        
+        if (!monthElement || !calendarGrid) return;
+        
+        // Month title
+        const monthNames = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+        
+        const monthName = monthNames[this.currentDate.getMonth()];
+        const year = this.currentDate.getFullYear();
+        monthElement.textContent = `${monthName} ${year}`;
+        
+        // Get first and last day of month
+        const firstDay = new Date(year, this.currentDate.getMonth(), 1);
+        const lastDay = new Date(year, this.currentDate.getMonth() + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const firstDayIndex = firstDay.getDay();
+        
+        // Today for comparison
+        const today = new Date();
+        const isTodayMonth = today.getMonth() === this.currentDate.getMonth() && 
+                            today.getFullYear() === year;
+        
+        let calendarHTML = '';
+        
+        // Previous month days
+        const prevMonthLastDay = new Date(year, this.currentDate.getMonth(), 0).getDate();
+        for (let i = firstDayIndex - 1; i >= 0; i--) {
+            const date = prevMonthLastDay - i;
+            calendarHTML += `
+                <div class="calendar-day other-month">
+                    <div class="date">${date}</div>
+                </div>
+            `;
+        }
+        
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, this.currentDate.getMonth(), day);
+            const dateStr = date.toISOString().split('T')[0];
+            const isToday = isTodayMonth && day === today.getDate();
+            
+            // Get events for this day
+            const dayEvents = this.getEventsForDate(date);
+            const hasBirthday = dayEvents.some(e => e.type === 'birthday');
+            const hasEvent = dayEvents.some(e => e.type === 'event');
+            const hasHoliday = dayEvents.some(e => e.type === 'holiday');
+            
+            calendarHTML += `
+                <div class="calendar-day ${isToday ? 'today' : ''}" 
+                     data-date="${dateStr}"
+                     data-day="${day}">
+                    <div class="date">${day}</div>
+                    <div class="day-events">
+                        ${hasBirthday ? '<span class="event-indicator birthday" title="Aniversário"></span>' : ''}
+                        ${hasEvent ? '<span class="event-indicator event" title="Evento"></span>' : ''}
+                        ${hasHoliday ? '<span class="event-indicator holiday" title="Feriado"></span>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Next month days
+        const totalCells = 42; // 6 weeks
+        const nextMonthDays = totalCells - (firstDayIndex + daysInMonth);
+        for (let day = 1; day <= nextMonthDays; day++) {
+            calendarHTML += `
+                <div class="calendar-day other-month">
+                    <div class="date">${day}</div>
+                </div>
+            `;
+        }
+        
+        calendarGrid.innerHTML = calendarHTML;
+        
+        // Add click events
+        calendarGrid.querySelectorAll('.calendar-day:not(.other-month)').forEach(day => {
+            day.addEventListener('click', () => {
+                const dateStr = day.dataset.date;
+                const date = new Date(dateStr);
+                this.openDayEvents(date);
+            });
+        });
+    }
+    
+    getEventsForDate(date) {
+        const dateStr = date.toISOString().split('T')[0];
+        return this.events.filter(event => {
+            const eventDate = new Date(event.date).toISOString().split('T')[0];
+            return eventDate === dateStr;
+        });
+    }
 
 renderEventsList() {
-    const eventsList = document.getElementById('eventsList');
-    if (!eventsList) return;
-
+    const container = document.getElementById('month-events');
+    if (!container) return;
+    
+    // Filter events for current month
+    const currentMonth = this.currentDate.getMonth();
+    const currentYear = this.currentDate.getFullYear();
+    
     const monthEvents = this.events.filter(event => {
         const eventDate = new Date(event.date);
-        return eventDate.getMonth() === this.currentMonth &&
-               eventDate.getFullYear() === this.currentYear;
+        return eventDate.getMonth() === currentMonth && 
+               eventDate.getFullYear() === currentYear;
     });
-
+    
     if (monthEvents.length === 0) {
-        eventsList.innerHTML = `
-            <div class="empty-events">
-                <i class="fas fa-calendar-times"></i>
-                <p>Nenhum evento este mês</p>
+        container.innerHTML = '<p>Nenhum evento este mês</p>';
+        return;
+    }
+    
+    // Sort by date
+    monthEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    container.innerHTML = monthEvents.map(event => {
+        const eventDate = new Date(event.date);
+        const day = eventDate.getDate();
+        const month = eventDate.getMonth() + 1;
+        
+        const color = this.getEventColor(event.type);
+        
+        return `
+            <div class="event-item" data-event-id="${event.id}">
+                <div class="event-color" style="background: ${color}"></div>
+                <div class="event-details">
+                    <div class="event-name">${event.title}</div>
+                    <div class="event-time">
+                        <i class="fas fa-calendar"></i> ${day}/${month.toString().padStart(2, '0')}
+                        ${event.time ? ` • ${event.time}` : ''}
+                    </div>
+                </div>
+                <button class="event-action-btn" title="Ver detalhes">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         `;
-        return;
-    }
-
-    eventsList.innerHTML = monthEvents.map(event => `
-        <div class="event-item" data-id="${event.id}">
-            <div class="event-color ${event.type}"></div>
-            <div class="event-details">
-                <div class="event-header">
-                    <h4>${event.title}</h4>
-                    <span class="event-date">${this.formatEventDate(event.date)}</span>
-                </div>
-                <p class="event-description">${event.description || 'Sem descrição'}</p>
-                ${event.location ? `<p class="event-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</p>` : ''}
-            </div>
-            <div class="event-actions">
-                <button class="action-btn" onclick="calendarSystem.editEvent('${event.id}')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn" onclick="calendarSystem.deleteEvent('${event.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-formatEventDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short'
+    }).join('');
+    
+    // Add click events
+    container.querySelectorAll('.event-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const eventId = item.dataset.eventId;
+            const event = this.events.find(e => e.id === eventId);
+            if (event) this.openEventDetails(event);
+        });
     });
 }
 
-selectDate(day) {
-    this.selectedDate = new Date(this.currentYear, this.currentMonth, day);
-    
-    // Destacar dia selecionado
-    document.querySelectorAll('.calendar-day.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    const selectedElement = document.querySelector(`.calendar-day[data-day="${day}"]`);
-    if (selectedElement) {
-        selectedElement.classList.add('selected');
-    }
-    
-    this.showDayEvents(day);
+getEventColor(eventType) {
+    const colors = {
+        'birthday': '#FF6B6B',
+        'event': '#4ECDC4',
+        'meeting': '#45B7D1',
+        'holiday': '#96CEB4',
+        'other': '#FFEAA7'
+    };
+    return colors[eventType] || '#95A5A6';
 }
 
-showDayEvents(day) {
-    const dayEvents = this.getEventsForDay(day);
+openDayEvents(date) {
+    this.selectedDate = date;
+    const dayEvents = this.getEventsForDate(date);
     
-    if (dayEvents.length === 0) {
-        this.showMessage('Nenhum evento para este dia', 'info');
-        return;
-    }
-    
-    const eventsHtml = dayEvents.map(event => `
-        <div class="day-event-item">
-            <span class="event-type ${event.type}"></span>
-            <div>
-                <strong>${event.title}</strong>
-                <p>${event.description || ''}</p>
-                <small>${event.time || 'Dia todo'}</small>
-            </div>
-        </div>
-    `).join('');
-    
-    const modalHtml = `
-        <div class="modal-overlay active" id="dayEventsModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Eventos do Dia ${day}</h3>
-                    <button class="close-modal" onclick="calendarSystem.closeModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    ${eventsHtml}
-                    <div class="modal-actions">
-                        <button class="btn-secondary" onclick="calendarSystem.closeModal()">
-                            Fechar
-                        </button>
-                        <button class="btn-primary" onclick="calendarSystem.showAddEventModal(${day})">
-                            <i class="fas fa-plus"></i> Novo Evento
-                        </button>
-                    </div>
-                </div>
+    const modalContent = `
+        <div class="day-events-modal">
+            <h3><i class="fas fa-calendar-day"></i> ${formatDate(date, 'full')}</h3>
+            
+            ${dayEvents.length === 0 ? 
+                '<p class="no-events">Nenhum evento para esta data</p>' : 
+                `<div class="day-events-list">
+                    ${dayEvents.map(event => `
+                        <div class="day-event-item" data-event-id="${event.id}">
+                            <div class="day-event-color" style="background: ${this.getEventColor(event.type)}"></div>
+                            <div class="day-event-info">
+                                <h4>${event.title}</h4>
+                                <p>${event.description || 'Sem descrição'}</p>
+                                ${event.time ? `<p><i class="fas fa-clock"></i> ${event.time}</p>` : ''}
+                            </div>
+                            <div class="day-event-actions">
+                                <button class="btn-small btn-edit-event" data-event-id="${event.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-small btn-delete-event" data-event-id="${event.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`
+            }
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary close-modal">Fechar</button>
+                <button type="button" class="btn-primary" id="btn-add-event-to-day">
+                    <i class="fas fa-plus"></i> Adicionar Evento
+                </button>
             </div>
         </div>
     `;
     
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.showModal('Eventos do Dia', modalContent);
+    
+    // Add event buttons
+    document.getElementById('btn-add-event-to-day')?.addEventListener('click', () => {
+        this.closeModal();
+        this.openAddEventModal(date);
+    });
+    
+    // Edit/delete buttons
+    document.querySelectorAll('.btn-edit-event').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const eventId = btn.dataset.eventId;
+            const event = this.events.find(e => e.id === eventId);
+            if (event) this.openEditEventModal(event);
+        });
+    });
+    
+    document.querySelectorAll('.btn-delete-event').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const eventId = btn.dataset.eventId;
+            if (confirm('Tem certeza que deseja excluir este evento?')) {
+                this.deleteEvent(eventId);
+            }
+        });
+    });
 }
 
-showAddEventModal(day = null) {
-    const defaultDate = day ? 
-        `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` :
-        '';
+openAddEventModal(prefillDate = null) {
+    const defaultDate = prefillDate || new Date();
+    const dateStr = defaultDate.toISOString().split('T')[0];
     
-    const modalHtml = `
-        <div class="modal-overlay active" id="addEventModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Novo Evento</h3>
-                    <button class="close-modal" onclick="calendarSystem.closeModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
+    const modalContent = `
+        <form class="modal-form" id="add-event-form">
+            <div class="modal-form-group">
+                <label for="event-title">Título do Evento *</label>
+                <input type="text" id="event-title" required placeholder="Ex: Reunião importante">
+            </div>
+            
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label for="event-date">Data *</label>
+                    <input type="date" id="event-date" value="${dateStr}" required>
                 </div>
                 
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Título do Evento *</label>
-                        <input type="text" id="eventTitle" placeholder="Nome do evento" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Data *</label>
-                            <input type="date" id="eventDate" value="${defaultDate}" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Hora</label>
-                            <input type="time" id="eventTime">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Tipo de Evento</label>
-                        <select id="eventType">
-                            <option value="event">Evento</option>
-                            <option value="birthday">Aniversário</option>
-                            <option value="meeting">Reunião</option>
-                            <option value="reminder">Lembrete</option>
-                            <option value="holiday">Feriado</option>
-                            <option value="personal">Pessoal</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <textarea id="eventDescription" rows="3" placeholder="Detalhes do evento"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Local</label>
-                        <input type="text" id="eventLocation" placeholder="Local do evento">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Cor do Evento</label>
-                        <input type="color" id="eventColor" value="#FFD700">
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="eventRecurring">
-                            <span>Evento recorrente</span>
-                        </label>
-                        
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="eventNotify">
-                            <span>Receber notificação</span>
-                        </label>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button class="btn-secondary" onclick="calendarSystem.closeModal()">
-                            Cancelar
-                        </button>
-                        <button class="btn-primary" onclick="calendarSystem.saveEvent()">
-                            <i class="fas fa-save"></i> Salvar Evento
-                        </button>
-                    </div>
+                <div class="modal-form-group">
+                    <label for="event-time">Hora (opcional)</label>
+                    <input type="time" id="event-time">
                 </div>
             </div>
-        </div>
+            
+            <div class="modal-form-group">
+                <label for="event-type">Tipo de Evento</label>
+                <select id="event-type">
+                    <option value="event">Evento</option>
+                    <option value="birthday">Aniversário</option>
+                    <option value="meeting">Reunião</option>
+                    <option value="holiday">Feriado</option>
+                    <option value="other">Outro</option>
+                </select>
+            </div>
+            
+            <div class="modal-form-group">
+                <label for="event-description">Descrição</label>
+                <textarea id="event-description" rows="3" placeholder="Detalhes do evento..."></textarea>
+            </div>
+            
+            <div class="modal-form-group">
+                <label for="event-color">Cor do Evento</label>
+                <input type="color" id="event-color" value="#4ECDC4">
+            </div>
+            
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>
+                        <input type="checkbox" id="event-all-day" checked>
+                        Dia inteiro
+                    </label>
+                </div>
+                
+                <div class="modal-form-group">
+                    <label>
+                        <input type="checkbox" id="event-recurring">
+                        Evento recorrente
+                    </label>
+                </div>
+            </div>
+            
+            <div class="modal-form-group">
+                <label>
+                    <input type="checkbox" id="event-notification" checked>
+                    Ativar notificação
+                </label>
+                <div id="notification-time" style="margin-left: 20px; display: none;">
+                    <label for="notification-minutes">Minutos antes:</label>
+                    <select id="notification-minutes">
+                        <option value="5">5 minutos</option>
+                        <option value="15">15 minutos</option>
+                        <option value="30">30 minutos</option>
+                        <option value="60">1 hora</option>
+                        <option value="1440">1 dia</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                <button type="submit" class="btn-primary">Adicionar Evento</button>
+            </div>
+        </form>
     `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-// Métodos de CRUD de eventos
-async saveEvent() {
-    const title = document.getElementById('eventTitle').value;
-    const date = document.getElementById('eventDate').value;
     
-    if (!title || !date) {
-        this.showMessage('Título e data são obrigatórios', 'error');
-        return;
+    this.showModal('Novo Evento', modalContent);
+    
+    // Toggle notification time
+    const notificationCheckbox = document.getElementById('event-notification');
+    const notificationTime = document.getElementById('notification-time');
+    
+    if (notificationCheckbox && notificationTime) {
+        notificationCheckbox.addEventListener('change', () => {
+            notificationTime.style.display = 
+                notificationCheckbox.checked ? 'block' : 'none';
+        });
     }
-
-    try {
-        const userId = localStorage.getItem('userId');
-        const eventId = Date.now().toString();
-        
-        const eventData = {
-            id: eventId,
-            title: title,
-            date: date,
-            time: document.getElementById('eventTime').value || '',
-            type: document.getElementById('eventType').value,
-            description: document.getElementById('eventDescription').value || '',
-            location: document.getElementById('eventLocation').value || '',
-            color: document.getElementById('eventColor').value,
-            recurring: document.getElementById('eventRecurring').checked,
-            notify: document.getElementById('eventNotify').checked,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        const eventRef = doc(db, 'users', userId, 'events', eventId);
-        await setDoc(eventRef, eventData);
-        
-        this.showMessage('Evento salvo com sucesso!', 'success');
-        this.closeModal();
-        this.loadEvents();
-        
-    } catch (error) {
-        console.error('Erro ao salvar evento:', error);
-        this.showMessage('Erro ao salvar evento', 'error');
-    }
+    
+    // Form submission
+    document.getElementById('add-event-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.addEvent();
+    });
 }
 
-async editEvent(eventId) {
-    try {
-        const userId = localStorage.getItem('userId');
-        const eventRef = doc(db, 'users', userId, 'events', eventId);
-        const eventDoc = await getDoc(eventRef);
+    async addEvent() {
+        if (!auth.currentUser) return;
         
-        if (!eventDoc.exists()) {
-            this.showMessage('Evento não encontrado', 'error');
+        const title = document.getElementById('event-title').value.trim();
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+        const type = document.getElementById('event-type').value;
+        const description = document.getElementById('event-description').value.trim();
+        const color = document.getElementById('event-color').value;
+        const isAllDay = document.getElementById('event-all-day').checked;
+        const isRecurring = document.getElementById('event-recurring').checked;
+        const hasNotification = document.getElementById('event-notification').checked;
+        const notificationMinutes = document.getElementById('notification-minutes')?.value || '15';
+        
+        if (!title || !date) {
+            showToast('Título e data são obrigatórios', 'warning');
             return;
         }
         
-        const event = eventDoc.data();
-        this.showEditEventModal(event);
-        
-    } catch (error) {
-        console.error('Erro ao editar evento:', error);
-        this.showMessage('Erro ao carregar evento', 'error');
+        showLoading('Adicionando evento...');
+        try {
+            const userId = auth.currentUser.uid;
+            const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Combine date and time
+            let eventDateTime = new Date(date);
+            if (time && !isAllDay) {
+                const [hours, minutes] = time.split(':');
+                eventDateTime.setHours(parseInt(hours), parseInt(minutes));
+            }
+            
+            const eventData = {
+                title,
+                date: eventDateTime.toISOString(),
+                time: time && !isAllDay ? time : null,
+                type,
+                description,
+                color,
+                isAllDay,
+                isRecurring,
+                hasNotification,
+                notificationMinutes: hasNotification ? parseInt(notificationMinutes) : null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            const eventRef = doc(db, 'users', userId, 'events', eventId);
+            await setDoc(eventRef, eventData);
+            
+            this.closeModal();
+            showToast('Evento adicionado com sucesso!', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao adicionar evento:', error);
+            showToast('Erro ao adicionar evento', 'error');
+        } finally {
+            hideLoading();
+        }
     }
-}
-
-showEditEventModal(event) {
-    const modalHtml = `
-        <div class="modal-overlay active" id="editEventModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Editar Evento</h3>
-                    <button class="close-modal" onclick="calendarSystem.closeModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
+    
+    openEditEventModal(event) {
+        const eventDate = new Date(event.date);
+        const dateStr = eventDate.toISOString().split('T')[0];
+        const timeStr = event.time || '';
+        
+        const modalContent = `
+            <form class="modal-form" id="edit-event-form">
+                <div class="modal-form-group">
+                    <label for="edit-event-title">Título do Evento *</label>
+                    <input type="text" id="edit-event-title" value="${event.title}" required>
                 </div>
                 
-                <div class="modal-body">
-                    <!-- Formulário similar ao addEvent, mas preenchido -->
-                    <div class="form-group">
-                        <label>Título do Evento *</label>
-                        <input type="text" id="editEventTitle" value="${event.title}" required>
+                <div class="modal-form-row">
+                    <div class="modal-form-group">
+                        <label for="edit-event-date">Data *</label>
+                        <input type="date" id="edit-event-date" value="${dateStr}" required>
                     </div>
                     
-                    <div class="form-actions">
-                        <button class="btn-danger" onclick="calendarSystem.deleteEvent('${event.id}')">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                        <button class="btn-secondary" onclick="calendarSystem.closeModal()">
-                            Cancelar
-                        </button>
-                        <button class="btn-primary" onclick="calendarSystem.updateEvent('${event.id}')">
-                            <i class="fas fa-save"></i> Atualizar
-                        </button>
+                    <div class="modal-form-group">
+                        <label for="edit-event-time">Hora</label>
+                        <input type="time" id="edit-event-time" value="${timeStr}">
                     </div>
                 </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-async updateEvent(eventId) {
-    // Implementação similar ao saveEvent
-    this.showMessage('Funcionalidade em desenvolvimento', 'info');
-}
-
-async deleteEvent(eventId) {
-    if (!confirm('Tem certeza que deseja excluir este evento?')) {
-        return;
-    }
-
-    try {
-        const userId = localStorage.getItem('userId');
-        const eventRef = doc(db, 'users', userId, 'events', eventId);
-        await deleteDoc(eventRef);
-        
-        this.showMessage('Evento excluído com sucesso', 'success');
-        this.closeModal();
-        this.loadEvents();
-        
-    } catch (error) {
-        console.error('Erro ao excluir evento:', error);
-        this.showMessage('Erro ao excluir evento', 'error');
-    }
-}
-
-closeModal() {
-    const modals = document.querySelectorAll('.modal-overlay');
-    modals.forEach(modal => modal.remove());
-}
-
-showMessage(message, type = 'info') {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message message-${type}`;
-    messageDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
-    `;
-    
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: ${type === 'success' ? '#28A745' : type === 'error' ? '#DC3545' : '#17A2B8'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: var(--border-radius);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 9999;
-        animation: slideIn 0.3s ease;
-        max-width: 300px;
-    `;
-    
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        messageDiv.style.animation = 'slideIn 0.3s ease reverse forwards';
-        setTimeout(() => messageDiv.remove(), 300);
-    }, 3000);
-}
-
-    addCalendarStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            .calendar-container {
-                animation: fadeIn 0.3s ease;
-            }
-            
-            .calendar-header {
-                margin-bottom: var(--spacing-lg);
-            }
-            
-            .calendar-header h2 {
-                font-size: 1.5rem;
-                display: flex;
-                align-items: center;
-                gap: var(--spacing-sm);
-                margin-bottom: var(--spacing-md);
-            }
-            
-            .header-controls {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: var(--spacing-lg);
-                margin-bottom: var(--spacing-md);
-            }
-            
-            .header-controls button {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                padding: 0;
-            }
-            
-            .header-controls h3 {
-                font-size: 1.2rem;
-                min-width: 200px;
-                text-align: center;
-            }
-            
-            .header-actions {
-                display: flex;
-                gap: var(--spacing-md);
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            
-            .season-indicator {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: var(--spacing-sm);
-                background: var(--surface-color);
-                padding: var(--spacing-sm) var(--spacing-md);
-                border-radius: var(--border-radius);
-                margin-bottom: var(--spacing-lg);
-                border: 1px solid var(--border-color);
-            }
-            
-            #seasonIcon {
-                font-size: 1.5rem;
-            }
-            
-            #seasonName {
-                font-weight: 600;
-                color: var(--primary-color);
-            }
-            
-            .calendar-grid {
-                display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                gap: 2px;
-                margin-bottom: var(--spacing-xl);
-                background: var(--border-color);
-                border: 1px solid var(--border-color);
-                border-radius: var(--border-radius);
-                overflow: hidden;
-            }
-            
-            .weekday {
-                background: var(--surface-color);
-                text-align: center;
-                padding: var(--spacing-sm);
-                font-weight: 600;
-                color: var(--text-color);
-                border-bottom: 1px solid var(--border-color);
-            }
-            
-            .calendar-day {
-                background: var(--background-color);
-                min-height: 80px;
-                padding: var(--spacing-sm);
-                position: relative;
-                cursor: pointer;
-                transition: var(--transition);
-                border: 1px solid transparent;
-            }
-            
-            .calendar-day:hover {
-                background: var(--surface-color);
-                border-color: var(--primary-color);
-            }
-            
-            .calendar-day.empty {
-                background: var(--surface-color);
-                cursor: default;
-            }
-            
-            .calendar-day.today {
-                background: rgba(255, 215, 0, 0.1);
-                border-color: var(--primary-color);
-            }
-            
-            .calendar-day.weekend {
-                background: rgba(0, 0, 0, 0.02);
-            }
-            
-            .calendar-day.selected {
-                background: rgba(255, 215, 0, 0.2);
-                border: 2px solid var(--primary-color);
-            }
-            
-            .day-number {
-                font-size: 1.1rem;
-                font-weight: 600;
-                margin-bottom: var(--spacing-xs);
-            }
-            
-            .day-indicators {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-                position: absolute;
-                bottom: 4px;
-                left: 4px;
-                right: 4px;
-            }
-            
-            .event-indicator {
-                height: 4px;
-                border-radius: 2px;
-                width: 100%;
-            }
-            
-            .event-indicator.event {
-                background: #4285F4;
-            }
-            
-            .event-indicator.birthday {
-                background: #EA4335;
-            }
-            
-            .event-indicator.meeting {
-                background: #34A853;
-            }
-            
-            .event-indicator.holiday {
-                background: #FBBC05;
-            }
-            
-            .moon-indicator {
-                position: absolute;
-                top: 4px;
-                right: 4px;
-                font-size: 0.8rem;
-            }
-            
-            .month-events, .celebrations-section {
-                background: var(--surface-color);
-                padding: var(--spacing-lg);
-                border-radius: var(--border-radius);
-                margin-bottom: var(--spacing-lg);
-                border: 1px solid var(--border-color);
-            }
-            
-            .month-events h3, .celebrations-section h3 {
-                display: flex;
-                align-items: center;
-                gap: var(--spacing-sm);
-                margin-bottom: var(--spacing-md);
-                font-size: 1.1rem;
-            }
-            
-            .events-list {
-                display: flex;
-                flex-direction: column;
-                gap: var(--spacing-md);
-            }
-            
-            .event-item {
-                display: flex;
-                align-items: center;
-                gap: var(--spacing-md);
-                padding: var(--spacing-md);
-                background: var(--background-color);
-                border-radius: var(--border-radius);
-                border: 1px solid var(--border-color);
-            }
-            
-            .event-color {
-                width: 8px;
-                height: 100%;
-                min-height: 40px;
-                border-radius: 4px;
-                flex-shrink: 0;
-            }
-            
-            .event-details {
-                flex: 1;
-                min-width: 0;
-            }
-            
-            .event-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 4px;
-            }
-            
-            .event-header h4 {
-                font-size: 1rem;
-                font-weight: 600;
-                margin-right: var(--spacing-sm);
-            }
-            
-            .event-date {
-                font-size: 0.8rem;
-                color: var(--text-secondary);
-                flex-shrink: 0;
-            }
-            
-            .event-description {
-                font-size: 0.9rem;
-                color: var(--text-secondary);
-                margin-bottom: 4px;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            
-            .event-location {
-                font-size: 0.8rem;
-                color: var(--text-secondary);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            }
-            
-            .event-actions {
-                display: flex;
-                gap: var(--spacing-xs);
-            }
-            
-            .empty-events {
-                text-align: center;
-                padding: var(--spacing-xl);
-                color: var(--text-secondary);
-            }
-            
-            .empty-events i {
-                font-size: 2rem;
-                margin-bottom: var(--spacing-sm);
-            }
-            
-            .celebrations-list {
-                display: flex;
-                flex-direction: column;
-                gap: var(--spacing-sm);
-            }
-            
-            .celebration-item {
-                display: flex;
-                align-items: center;
-                gap: var(--spacing-sm);
-                padding: var(--spacing-sm);
-                background: var(--background-color);
-                border-radius: var(--border-radius);
-            }
-            
-            .day-event-item {
-                display: flex;
-                align-items: center;
-                gap: var(--spacing-md);
-                padding: var(--spacing-md);
-                margin-bottom: var(--spacing-sm);
-                background: var(--surface-color);
-                border-radius: var(--border-radius);
-            }
-            
-            @media (max-width: 768px) {
-                .calendar-day {
-                    min-height: 60px;
-                    padding: 4px;
-                }
                 
-                .day-number {
-                    font-size: 0.9rem;
-                }
+                <div class="modal-form-group">
+                    <label for="edit-event-type">Tipo</label>
+                    <select id="edit-event-type">
+                        <option value="event" ${event.type === 'event' ? 'selected' : ''}>Evento</option>
+                        <option value="birthday" ${event.type === 'birthday' ? 'selected' : ''}>Aniversário</option>
+                        <option value="meeting" ${event.type === 'meeting' ? 'selected' : ''}>Reunião</option>
+                        <option value="holiday" ${event.type === 'holiday' ? 'selected' : ''}>Feriado</option>
+                        <option value="other" ${event.type === 'other' ? 'selected' : ''}>Outro</option>
+                    </select>
+                </div>
                 
-                .event-indicator {
-                    height: 3px;
-                }
+                <div class="modal-form-group">
+                    <label for="edit-event-description">Descrição</label>
+                    <textarea id="edit-event-description" rows="3">${event.description || ''}</textarea>
+                </div>
                 
-                .event-item {
-                    flex-direction: column;
-                    align-items: stretch;
-                }
-                
-                .event-actions {
-                    align-self: flex-end;
-                }
-            }
-            
-            @media (max-width: 480px) {
-                .calendar-grid {
-                    gap: 1px;
-                }
-                
-                .calendar-day {
-                    min-height: 50px;
-                }
-                
-                .day-indicators {
-                    display: none;
-                }
-            }
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="button" class="btn-danger" id="btn-delete-event-modal">
+                        Excluir
+                    </button>
+                </div>
+            </form>
         `;
         
-        document.head.appendChild(style);
+        this.showModal('Editar Evento', modalContent);
+        
+        document.getElementById('edit-event-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateEvent(event.id);
+        });
+        
+        document.getElementById('btn-delete-event-modal').addEventListener('click', () => {
+            if (confirm('Excluir este evento?')) {
+                this.deleteEvent(event.id);
+            }
+        });
+    }
+    
+    async updateEvent(eventId) {
+        if (!auth.currentUser) return;
+        
+        const title = document.getElementById('edit-event-title').value.trim();
+        const date = document.getElementById('edit-event-date').value;
+        const time = document.getElementById('edit-event-time').value;
+        const type = document.getElementById('edit-event-type').value;
+        const description = document.getElementById('edit-event-description').value.trim();
+        
+        if (!title || !date) {
+            showToast('Título e data são obrigatórios', 'warning');
+            return;
+        }
+        
+        showLoading('Atualizando evento...');
+        try {
+            const userId = auth.currentUser.uid;
+            const eventRef = doc(db, 'users', userId, 'events', eventId);
+            
+            const updateData = {
+                title,
+                date: new Date(date).toISOString(),
+                time: time || null,
+                type,
+                description,
+                updatedAt: new Date().toISOString()
+            };
+            
+            await updateDoc(eventRef, updateData);
+            
+            this.closeModal();
+            showToast('Evento atualizado!', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao atualizar evento:', error);
+            showToast('Erro ao atualizar evento', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async deleteEvent(eventId) {
+        if (!auth.currentUser) return;
+        
+        showLoading('Excluindo evento...');
+        try {
+            const userId = auth.currentUser.uid;
+            const eventRef = doc(db, 'users', userId, 'events', eventId);
+            await deleteDoc(eventRef);
+            
+            this.closeModal();
+            showToast('Evento excluído!', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao excluir evento:', error);
+            showToast('Erro ao excluir evento', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    openEventDetails(event) {
+        const eventDate = new Date(event.date);
+        const formattedDate = formatDate(eventDate, 'dd/mm/yyyy');
+        const formattedTime = event.time ? ` às ${event.time}` : '';
+        
+        const modalContent = `
+            <div class="event-details-modal">
+                <div class="event-detail-header" style="border-left: 5px solid ${event.color || '#4ECDC4'}">
+                    <h3>${event.title}</h3>
+                    <p class="event-detail-date">
+                        <i class="fas fa-calendar"></i> ${formattedDate}${formattedTime}
+                    </p>
+                    <span class="event-type-badge">${this.getEventTypeLabel(event.type)}</span>
+                </div>
+                
+                <div class="event-detail-content">
+                    ${event.description ? `
+                        <div class="event-detail-section">
+                            <h4><i class="fas fa-align-left"></i> Descrição</h4>
+                            <p>${event.description}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="event-detail-section">
+                        <h4><i class="fas fa-info-circle"></i> Informações</h4>
+                        <p><strong>Tipo:</strong> ${this.getEventTypeLabel(event.type)}</p>
+                        <p><strong>Duração:</strong> ${event.isAllDay ? 'Dia inteiro' : 'Horário específico'}</p>
+                        ${event.hasNotification ? `
+                            <p><strong>Notificação:</strong> ${event.notificationMinutes} minutos antes</p>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal">Fechar</button>
+                    <button type="button" class="btn-primary" id="btn-edit-event-details">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.showModal('Detalhes do Evento', modalContent);
+        
+        document.getElementById('btn-edit-event-details')?.addEventListener('click', () => {
+            this.closeModal();
+            this.openEditEventModal(event);
+        });
+    }
+    
+    getEventTypeLabel(type) {
+        const labels = {
+            'event': 'Evento',
+            'birthday': 'Aniversário',
+            'meeting': 'Reunião',
+            'holiday': 'Feriado',
+            'other': 'Outro'
+        };
+        return labels[type] || type;
+    }
+    
+    async exportCalendar() {
+        // Implement export to PDF/Image
+        showToast('Exportação em desenvolvimento', 'info');
+    }
+    
+    showModal(title, content) {
+        // Use existing modal or create one
+        const modal = document.getElementById('modal-event') || 
+                      document.getElementById('modal-contact') ||
+                      document.createElement('div');
+        
+        if (!modal.id) {
+            modal.id = 'calendar-modal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-header">
+                <h2>${title}</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">${content}</div>
+        `;
+        
+        modal.classList.add('active');
+        document.getElementById('modal-overlay').classList.add('active');
+        
+        modal.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => this.closeModal());
+        });
+    }
+    
+    closeModal() {
+        const modals = document.querySelectorAll('.modal');
+        const overlay = document.getElementById('modal-overlay');
+        
+        modals.forEach(modal => modal.classList.remove('active'));
+        if (overlay) overlay.classList.remove('active');
     }
 }
 
-// Inicializar sistema de calendário
-const calendarSystem = new CalendarSystem();
-window.calendarSystem = calendarSystem;
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    const calendarSystem = new CalendarSystem();
+    window.calendarSystem = calendarSystem;
+    console.log('Sistema de calendário inicializado!');
+});
 
-// Integração com o app principal
-if (typeof app !== 'undefined') {
-    app.renderCalendarPage = async function() {
-        await calendarSystem.renderCalendarPage();
-    };
-}
-
-export default calendarSystem;
+export default CalendarSystem;
