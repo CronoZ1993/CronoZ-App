@@ -18,6 +18,81 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar sistema de perfil
     initProfileSystem();
+
+    // Inicializar todos os botões
+function initAllButtons() {
+    // Botão adicionar contato
+    const btnAddContact = document.getElementById('btn-add-contact');
+    if (btnAddContact) {
+        btnAddContact.addEventListener('click', function() {
+            showModal('Adicionar Contato', '<p>Funcionalidade em desenvolvimento...</p>');
+        });
+    }
+    
+    // Botão novo chat
+    const btnNewChat = document.getElementById('btn-new-chat');
+    if (btnNewChat) {
+        btnNewChat.addEventListener('click', function() {
+            showModal('Nova Conversa', '<p>Funcionalidade em desenvolvimento...</p>');
+        });
+    }
+    
+    // Botão adicionar evento
+    const btnAddEvent = document.getElementById('btn-add-event');
+    if (btnAddEvent) {
+        btnAddEvent.addEventListener('click', function() {
+            showModal('Novo Evento', '<p>Funcionalidade em desenvolvimento...</p>');
+        });
+    }
+    
+    // Botão adicionar membro
+    const btnAddMember = document.getElementById('btn-add-member');
+    if (btnAddMember) {
+        btnAddMember.addEventListener('click', function() {
+            showModal('Adicionar Membro', '<p>Funcionalidade em desenvolvimento...</p>');
+        });
+    }
+    
+    // Botão criar álbum
+    const btnCreateAlbum = document.getElementById('btn-create-album');
+    if (btnCreateAlbum) {
+        btnCreateAlbum.addEventListener('click', function() {
+            showModal('Criar Álbum', '<p>Funcionalidade em desenvolvimento...</p>');
+        });
+    }
+    
+    // Botões de notificações, busca, perfil
+    const btnNotifications = document.getElementById('btn-notifications');
+    const btnSearch = document.getElementById('btn-search');
+    const btnProfile = document.getElementById('btn-profile');
+    
+    if (btnNotifications) {
+        btnNotifications.addEventListener('click', function() {
+            showToast('Sem notificações', 'info');
+        });
+    }
+    
+    if (btnSearch) {
+        btnSearch.addEventListener('click', function() {
+            const searchInput = document.querySelector('.search-box input') ||
+                              document.getElementById('contact-search');
+            if (searchInput) {
+                searchInput.focus();
+                showToast('Digite para pesquisar', 'info');
+            }
+        });
+    }
+    
+    if (btnProfile) {
+        btnProfile.addEventListener('click', openEditProfileModal);
+    }
+}
+
+// Chame no DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... código existente ...
+    initAllButtons(); // Adicione esta linha
+});
     
     // Verificar autenticação
     checkAuthState();
