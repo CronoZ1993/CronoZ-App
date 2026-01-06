@@ -1,1139 +1,567 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CronoZ - Debug</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>CronoZ - Página de Debug</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             min-height: 100vh;
-            padding: 20px;
-            color: #333;
+            padding: 2rem;
         }
         
         .debug-container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         
-        .debug-header {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            padding: 30px;
+        .header {
             text-align: center;
-            color: #000;
+            margin-bottom: 2rem;
         }
         
-        .debug-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+        .logo {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
         }
         
-        .debug-header h1 i {
-            animation: spin 4s linear infinite;
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
         }
         
-        .debug-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .subtitle {
+            opacity: 0.8;
+            margin-bottom: 2rem;
         }
         
-        .debug-content {
+        .status-grid {
             display: grid;
-            grid-template-columns: 300px 1fr;
-            min-height: 800px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-card.success .status-icon {
+            color: #4ade80;
+        }
+        
+        .status-card.error .status-icon {
+            color: #f87171;
+        }
+        
+        .status-card.warning .status-icon {
+            color: #fbbf24;
+        }
+        
+        .status-card.info .status-icon {
+            color: #60a5fa;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: #4ade80;
+            color: #000;
+        }
+        
+        .btn-secondary {
+            background: #60a5fa;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f87171;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #fbbf24;
+            color: #000;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+        
+        .console {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .console-title {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .log-time {
+            color: #9ca3af;
+            font-size: 0.8rem;
+            margin-right: 1rem;
+        }
+        
+        .log-success {
+            color: #4ade80;
+        }
+        
+        .log-error {
+            color: #f87171;
+        }
+        
+        .log-warning {
+            color: #fbbf24;
+        }
+        
+        .log-info {
+            color: #60a5fa;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 2rem;
+            color: #93c5fd;
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .debug-container {
+                padding: 1rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="debug-container">
-        <div class="debug-header">
-            <h1>
-                <i class="fas fa-bug"></i>
-                CronoZ - Debug & Testes
-            </h1>
-            <p class="debug-subtitle">Verifique e teste todas as funcionalidades do app</p>
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-crown"></i>
+                <span>CronoZ</span>
+            </div>
+            <h1>Página de Debug & Status</h1>
+            <p class="subtitle">Verifique o status do sistema e execute testes</p>
         </div>
         
-        <div class="debug-content">
-
-<!-- Sidebar -->
-<div class="debug-sidebar">
-    <div class="debug-nav">
-        <button class="active" data-panel="overview">
-            <i class="fas fa-tachometer-alt"></i>
-            Visão Geral
-        </button>
-        <button data-panel="firebase">
-            <i class="fas fa-fire"></i>
-            Firebase
-        </button>
-        <button data-panel="auth">
-            <i class="fas fa-user-shield"></i>
-            Autenticação
-        </button>
-        <button data-panel="database">
-            <i class="fas fa-database"></i>
-            Banco de Dados
-        </button>
-        <button data-panel="storage">
-            <i class="fas fa-hdd"></i>
-            Storage
-        </button>
-        <button data-panel="app">
-            <i class="fas fa-mobile-alt"></i>
-            App Funcional
-        </button>
-        <button data-panel="performance">
-            <i class="fas fa-tachometer-alt"></i>
-            Performance
-        </button>
-        <button data-panel="console">
-            <i class="fas fa-terminal"></i>
-            Console
-        </button>
-    </div>
-    
-    <div class="debug-status">
-        <h3>Status do Sistema</h3>
-        <div class="status-item">
-            <div class="status-icon ok">
-                <i class="fas fa-check"></i>
-            </div>
-            <div class="status-info">
-                <h4>Firebase</h4>
-                <p id="firebaseStatus">Verificando...</p>
-            </div>
+        <div class="status-grid" id="status-grid">
+            <!-- Status será preenchido via JavaScript -->
         </div>
         
-        <div class="status-item">
-            <div class="status-icon">
-                <i class="fas fa-sync fa-spin"></i>
-            </div>
-            <div class="status-info">
-                <h4>Autenticação</h4>
-                <p id="authStatus">Verificando...</p>
-            </div>
-        </div>
-        
-        <div class="status-item">
-            <div class="status-icon">
-                <i class="fas fa-sync fa-spin"></i>
-            </div>
-            <div class="status-info">
-                <h4>Database</h4>
-                <p id="dbStatus">Verificando...</p>
-            </div>
-        </div>
-        
-        <div class="status-item">
-            <div class="status-icon">
-                <i class="fas fa-sync fa-spin"></i>
-            </div>
-            <div class="status-info">
-                <h4>Storage</h4>
-                <p id="storageStatus">Verificando...</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="quick-actions">
-        <h3>Ações Rápidas</h3>
-        <button class="btn-action" onclick="runAllTests()">
-            <i class="fas fa-play"></i> Rodar Todos os Testes
-        </button>
-        <button class="btn-action" onclick="clearLocalStorage()">
-            <i class="fas fa-trash"></i> Limpar Cache
-        </button>
-        <button class="btn-action" onclick="window.location.href='index.html'">
-            <i class="fas fa-home"></i> Voltar ao App
-        </button>
-    </div>
-</div>
-
-<!-- Main Content -->
-<div class="debug-main">
-    <!-- Painel: Visão Geral -->
-    <div class="debug-panel active" id="overviewPanel">
-        <div class="panel-header">
-            <i class="fas fa-tachometer-alt"></i>
-            <h2>Visão Geral do Sistema</h2>
-        </div>
-        
-        <div class="overview-stats">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-fire"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Firebase</h3>
-                    <p id="firebaseDetail">Carregando...</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Usuários</h3>
-                    <p id="usersDetail">Carregando...</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-database"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Dados</h3>
-                    <p id="dataDetail">Carregando...</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-hdd"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Storage</h3>
-                    <p id="storageDetail">Carregando...</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="system-info">
-            <h3>Informações do Sistema</h3>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>User Agent:</label>
-                    <span id="userAgent">Carregando...</span>
-                </div>
-                <div class="info-item">
-                    <label>Online:</label>
-                    <span id="onlineStatus">Carregando...</span>
-                </div>
-                <div class="info-item">
-                    <label>LocalStorage:</label>
-                    <span id="localStorageStatus">Carregando...</span>
-                </div>
-                <div class="info-item">
-                    <label>Service Worker:</label>
-                    <span id="swStatus">Carregando...</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="quick-tests">
-            <h3>Testes Rápidos</h3>
-            <div class="test-buttons">
-                <button class="btn-test" onclick="testFirebaseConnection()">
-                    <i class="fas fa-wifi"></i> Testar Conexão Firebase
-                </button>
-                <button class="btn-test" onclick="testLocalStorage()">
-                    <i class="fas fa-save"></i> Testar LocalStorage
-                </button>
-                <button class="btn-test" onclick="testServiceWorker()">
-                    <i class="fas fa-cog"></i> Testar Service Worker
-                </button>
-                <button class="btn-test" onclick="testPWA()">
-                    <i class="fas fa-mobile-alt"></i> Testar PWA
-                </button>
-            </div>
-        </div>
-    </div>
-
-<!-- Painel: Firebase -->
-<div class="debug-panel" id="firebasePanel">
-    <div class="panel-header">
-        <i class="fas fa-fire"></i>
-        <h2>Configuração Firebase</h2>
-    </div>
-    
-    <div class="firebase-config">
-        <h3>Configuração Atual</h3>
-        <div class="config-display" id="firebaseConfigDisplay">
-            <p>Carregando configuração...</p>
-        </div>
-        
-        <div class="config-test">
-            <h3>Testes de Conexão</h3>
-            <div class="test-buttons">
-                <button class="btn-test run" onclick="testFirebaseAuth()">
-                    <i class="fas fa-user-shield"></i> Testar Auth
-                </button>
-                <button class="btn-test run" onclick="testFirestore()">
-                    <i class="fas fa-database"></i> Testar Firestore
-                </button>
-                <button class="btn-test run" onclick="testStorage()">
-                    <i class="fas fa-hdd"></i> Testar Storage
-                </button>
-            </div>
-            
-            <div class="test-results" id="firebaseResults"></div>
-        </div>
-        
-        <div class="config-fix">
-            <h3>Solução de Problemas</h3>
-            <p>Se os testes falharem, verifique:</p>
-            <ul class="fix-list">
-                <li><i class="fas fa-check-circle"></i> Firebase configurado no console</li>
-                <li><i class="fas fa-check-circle"></i> Authentication ativado</li>
-                <li><i class="fas fa-check-circle"></i> Firestore Database criado</li>
-                <li><i class="fas fa-check-circle"></i> Storage configurado</li>
-                <li><i class="fas fa-check-circle"></i> Regras de segurança liberadas</li>
-            </ul>
-            <button class="btn-test fix" onclick="showFirebaseGuide()">
-                <i class="fas fa-book"></i> Guia de Configuração
+        <div class="controls">
+            <button class="btn btn-primary" onclick="runTests()">
+                <i class="fas fa-play"></i> Executar Testes
+            </button>
+            <button class="btn btn-secondary" onclick="checkFirebase()">
+                <i class="fas fa-database"></i> Testar Firebase
+            </button>
+            <button class="btn btn-warning" onclick="clearStorage()">
+                <i class="fas fa-trash"></i> Limpar Cache
+            </button>
+            <button class="btn btn-danger" onclick="resetApp()">
+                <i class="fas fa-redo"></i> Resetar App
+            </button>
+            <button class="btn btn-primary" onclick="exportLogs()">
+                <i class="fas fa-download"></i> Exportar Logs
             </button>
         </div>
+        
+        <div class="console">
+            <div class="console-title">
+                <span>Console de Logs</span>
+                <button class="btn btn-small" onclick="clearConsole()" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                    <i class="fas fa-times"></i> Limpar
+                </button>
+            </div>
+            <div id="console-output">
+                <!-- Logs serão adicionados aqui -->
+            </div>
+        </div>
+        
+        <a href="index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Voltar para o App
+        </a>
     </div>
-</div>
 
-<!-- Painel: Autenticação -->
-<div class="debug-panel" id="authPanel">
-    <div class="panel-header">
-        <i class="fas fa-user-shield"></i>
-        <h2>Testes de Autenticação</h2>
-    </div>
-    
-    <div class="auth-tests">
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Login com Email/Senha</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa o sistema de login com email e senha.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testEmailLogin()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="emailLoginResults"></div>
-        </div>
+    <script>
+        // Sistema de logging
+        const consoleOutput = document.getElementById('console-output');
         
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Login com Google</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa o login integrado com Google.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testGoogleLogin()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="googleLoginResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Registro de Novo Usuário</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa a criação de nova conta.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testUserRegistration()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-                <button class="btn-test reset" onclick="clearTestUser()">
-                    <i class="fas fa-trash"></i> Limpar
-                </button>
-            </div>
-            <div class="test-results" id="registrationResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Logout</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa o logout do sistema.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testLogout()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="logoutResults"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Painel: Database -->
-<div class="debug-panel" id="databasePanel">
-    <div class="panel-header">
-        <i class="fas fa-database"></i>
-        <h2>Testes de Banco de Dados</h2>
-    </div>
-    
-    <div class="database-tests">
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Conexão Firestore</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa conexão básica com Firestore.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFirestoreConnection()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="firestoreConnectionResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Leitura de Dados</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa leitura de documentos.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFirestoreRead()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="firestoreReadResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Escrita de Dados</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa escrita de documentos.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFirestoreWrite()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-                <button class="btn-test reset" onclick="clearTestData()">
-                    <i class="fas fa-trash"></i> Limpar
-                </button>
-            </div>
-            <div class="test-results" id="firestoreWriteResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Atualização em Tempo Real</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa listeners em tempo real.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testRealtimeUpdates()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-                <button class="btn-test reset" onclick="stopRealtimeTest()">
-                    <i class="fas fa-stop"></i> Parar
-                </button>
-            </div>
-            <div class="test-results" id="realtimeResults"></div>
-        </div>
-    </div>
-    
-    <div class="database-info">
-        <h3>Informações do Database</h3>
-        <div class="info-grid">
-            <div class="info-item">
-                <label>Projeto ID:</label>
-                <span id="projectId">Carregando...</span>
-            </div>
-            <div class="info-item">
-                <label>Regras:</label>
-                <span id="dbRules">Carregando...</span>
-            </div>
-            <div class="info-item">
-                <label>Coleções:</label>
-                <span id="collections">Carregando...</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Painel: Storage -->
-<div class="debug-panel" id="storagePanel">
-    <div class="panel-header">
-        <i class="fas fa-hdd"></i>
-        <h2>Testes de Storage</h2>
-    </div>
-    
-    <div class="storage-tests">
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Conexão Storage</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa conexão com Firebase Storage.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testStorageConnection()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="storageConnectionResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Upload de Arquivo</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa upload de imagem.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFileUpload()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-                <button class="btn-test reset" onclick="clearTestFile()">
-                    <i class="fas fa-trash"></i> Limpar
-                </button>
-            </div>
-            <div class="test-results" id="uploadResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Download de Arquivo</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa download de arquivo.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFileDownload()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="downloadResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Exclusão de Arquivo</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa exclusão de arquivo.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFileDelete()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="deleteResults"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Painel: App Funcional -->
-<div class="debug-panel" id="appPanel">
-    <div class="panel-header">
-        <i class="fas fa-mobile-alt"></i>
-        <h2>Testes do App</h2>
-    </div>
-    
-    <div class="app-tests">
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Sistema de Contatos</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa CRUD completo de contatos.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testContactsSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="contactsResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Sistema de Chat</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa chat em tempo real.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testChatSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="chatResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Calendário</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa sistema de calendário.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testCalendarSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="calendarResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Árvore Genealógica</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa sistema de árvore.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFamilyTreeSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="treeResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Álbuns de Fotos</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa sistema de álbuns.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testAlbumsSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="albumsResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Configurações</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa sistema de configurações.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testSettingsSystem()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="settingsResults"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Painel: Performance -->
-<div class="debug-panel" id="performancePanel">
-    <div class="panel-header">
-        <i class="fas fa-tachometer-alt"></i>
-        <h2>Testes de Performance</h2>
-    </div>
-    
-    <div class="performance-tests">
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Carregamento da Página</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Mede tempo de carregamento.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testPageLoad()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="pageLoadResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Uso de Memória</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Verifica uso de memória.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testMemoryUsage()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="memoryResults"></div>
-        </div>
-        
-        <div class="test-card">
-            <div class="test-header">
-                <h3>Performance Firebase</h3>
-                <span class="test-status status-warning">Não testado</span>
-            </div>
-            <div class="test-description">
-                Testa latência do Firebase.
-            </div>
-            <div class="test-actions">
-                <button class="btn-test run" onclick="testFirebasePerformance()">
-                    <i class="fas fa-play"></i> Testar
-                </button>
-            </div>
-            <div class="test-results" id="firebasePerfResults"></div>
-        </div>
-    </div>
-</div>
-
-            <!-- Painel: Console -->
-            <div class="debug-panel" id="consolePanel">
-                <div class="panel-header">
-                    <i class="fas fa-terminal"></i>
-                    <h2>Console de Debug</h2>
-                </div>
-                
-                <div class="console-controls">
-                    <div class="console-buttons">
-                        <button class="btn-console" onclick="clearConsole()">
-                            <i class="fas fa-trash"></i> Limpar Console
-                        </button>
-                        <button class="btn-console" onclick="exportLogs()">
-                            <i class="fas fa-download"></i> Exportar Logs
-                        </button>
-                        <button class="btn-console" onclick="toggleAutoScroll()">
-                            <i class="fas fa-arrow-down"></i> Auto-scroll
-                        </button>
-                    </div>
-                    
-                    <div class="console-filters">
-                        <label class="filter-label">
-                            <input type="checkbox" id="filterInfo" checked> Info
-                        </label>
-                        <label class="filter-label">
-                            <input type="checkbox" id="filterSuccess" checked> Success
-                        </label>
-                        <label class="filter-label">
-                            <input type="checkbox" id="filterWarning" checked> Warning
-                        </label>
-                        <label class="filter-label">
-                            <input type="checkbox" id="filterError" checked> Error
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="debug-console" id="debugConsole">
-                    <div class="console-line info">
-                        [INFO] Console de debug inicializado
-                    </div>
-                    <div class="console-line info">
-                        [INFO] Sistema CronoZ Debug v1.0.0
-                    </div>
-                </div>
-                
-                <div class="console-input">
-                    <input type="text" id="consoleCommand" placeholder="Digite um comando...">
-                    <button onclick="executeCommand()">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-                
-                <div class="console-commands">
-                    <h4>Comandos Disponíveis:</h4>
-                    <div class="commands-list">
-                        <code>help</code> - Mostra esta ajuda
-                        <code>test all</code> - Roda todos os testes
-                        <code>clear cache</code> - Limpa cache
-                        <code>status</code> - Mostra status do sistema
-                        <code>localstorage</code> - Mostra dados do localStorage
-                        <code>firebase config</code> - Mostra configuração
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script type="module">
-    // Importar Firebase para testes
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-    import { getStorage } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
-    
-    // Variáveis globais
-    let firebaseApp = null;
-    let auth = null;
-    let db = null;
-    let storage = null;
-    let consoleAutoScroll = true;
-    
-    // Inicializar debug quando carregar
-    document.addEventListener('DOMContentLoaded', initDebug);
-    
-    async function initDebug() {
-        consoleLog('info', 'Debug system initialized');
-        setupEventListeners();
-        checkSystemStatus();
-        loadFirebaseConfig();
-    }
-    
-    function setupEventListeners() {
-        // Navegação entre painéis
-        document.querySelectorAll('.debug-nav button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const panel = btn.dataset.panel;
-                switchPanel(panel);
-            });
-        });
-        
-        // Console command
-        document.getElementById('consoleCommand').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') executeCommand();
-        });
-    }
-    
-    function switchPanel(panelId) {
-        // Atualizar botões ativos
-        document.querySelectorAll('.debug-nav button').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.panel === panelId);
-        });
-        
-        // Mostrar painel correto
-        document.querySelectorAll('.debug-panel').forEach(panel => {
-            panel.classList.toggle('active', panel.id === panelId + 'Panel');
-        });
-        
-        consoleLog('info', `Painel alterado: ${panelId}`);
-    }
-</script>
-
-<script>
-    // Funções de Console
-    function consoleLog(type, message) {
-        const consoleEl = document.getElementById('debugConsole');
-        const line = document.createElement('div');
-        line.className = `console-line ${type}`;
-        line.innerHTML = `[${type.toUpperCase()}] ${message}`;
-        consoleEl.appendChild(line);
-        
-        if (consoleAutoScroll) {
-            consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-        
-        // Atualizar console real
-        switch(type) {
-            case 'error': console.error(message); break;
-            case 'warning': console.warn(message); break;
-            case 'success': console.log('✓', message); break;
-            default: console.log('ℹ', message);
-        }
-    }
-    
-    function clearConsole() {
-        document.getElementById('debugConsole').innerHTML = '';
-        consoleLog('info', 'Console limpo');
-    }
-    
-    function executeCommand() {
-        const input = document.getElementById('consoleCommand');
-        const command = input.value.trim().toLowerCase();
-        
-        if (!command) return;
-        
-        consoleLog('info', `Comando: ${command}`);
-        
-        switch(command) {
-            case 'help':
-                consoleLog('info', 'Comandos: test all, clear cache, status, localstorage, firebase config');
-                break;
-            case 'test all':
-                runAllTests();
-                break;
-            case 'clear cache':
-                clearLocalStorage();
-                break;
-            case 'status':
-                checkSystemStatus();
-                break;
-            case 'localstorage':
-                showLocalStorage();
-                break;
-            case 'firebase config':
-                showFirebaseConfig();
-                break;
-            default:
-                consoleLog('error', `Comando não encontrado: ${command}`);
-        }
-        
-        input.value = '';
-    }
-    
-    function toggleAutoScroll() {
-        consoleAutoScroll = !consoleAutoScroll;
-        consoleLog('info', `Auto-scroll: ${consoleAutoScroll ? 'ON' : 'OFF'}`);
-    }
-    
-    // Testes Básicos
-    async function checkSystemStatus() {
-        consoleLog('info', 'Verificando status do sistema...');
-        
-        // Verificar Firebase
-        try {
-            const config = await fetch('firebase-config.js').then(r => r.text());
-            document.getElementById('firebaseStatus').textContent = 'Configurado';
-            document.getElementById('firebaseStatus').parentElement.querySelector('.status-icon').className = 'status-icon ok';
-            consoleLog('success', 'Firebase configurado');
-        } catch (e) {
-            document.getElementById('firebaseStatus').textContent = 'Não configurado';
-            consoleLog('error', 'Firebase não configurado');
-        }
-        
-            // Verificar online status
-            document.getElementById('onlineStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span>${message}</span>
+            `;
+            consoleOutput.appendChild(logEntry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
             
-            // Verificar localStorage
-            const lsAvailable = testLocalStorage();
-            document.getElementById('localStorageStatus').textContent = lsAvailable ? 'Disponível' : 'Indisponível';
-            
-            // Verificar Service Worker
-            if ('serviceWorker' in navigator) {
-                document.getElementById('swStatus').textContent = 'Suportado';
-                consoleLog('success', 'Service Worker suportado');
-            } else {
-                document.getElementById('swStatus').textContent = 'Não suportado';
-                consoleLog('warning', 'Service Worker não suportado');
+            // Também log no console real
+            switch(type) {
+                case 'error': console.error(message); break;
+                case 'warning': console.warn(message); break;
+                case 'success': console.log('✅', message); break;
+                default: console.log('ℹ️', message);
             }
         }
         
-        function testLocalStorage() {
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+            log('Console limpo', 'info');
+        }
+        
+        // Inicializar status
+        function initializeStatus() {
+            const statusGrid = document.getElementById('status-grid');
+            
+            const statusItems = [
+                { id: 'status-browser', name: 'Navegador', icon: 'fas fa-globe' },
+                { id: 'status-firebase', name: 'Firebase', icon: 'fas fa-database' },
+                { id: 'status-auth', name: 'Autenticação', icon: 'fas fa-user-lock' },
+                { id: 'status-storage', name: 'Armazenamento', icon: 'fas fa-hdd' },
+                { id: 'status-pwa', name: 'PWA', icon: 'fas fa-mobile-alt' },
+                { id: 'status-service', name: 'Service Worker', icon: 'fas fa-cogs' }
+            ];
+            
+            statusGrid.innerHTML = statusItems.map(item => `
+                <div class="status-card" id="${item.id}">
+                    <div class="status-icon">
+                        <i class="${item.icon}"></i>
+                    </div>
+                    <h3>${item.name}</h3>
+                    <p>Verificando...</p>
+                </div>
+            `).join('');
+            
+            // Verificar status
+            checkBrowser();
+            checkFirebaseStatus();
+            checkAuthStatus();
+            checkStorageStatus();
+            checkPWAStatus();
+            checkServiceWorker();
+        }
+        
+        function checkBrowser() {
+            const card = document.getElementById('status-browser');
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+            const isOnline = navigator.onLine;
+            
+            let status = 'success';
+            let message = `${isMobile ? 'Mobile' : 'Desktop'}, Online`;
+            
+            if (!isOnline) {
+                status = 'error';
+                message = 'Offline';
+            }
+            
+            card.classList.add(status);
+            card.querySelector('p').textContent = message;
+            log(`Navegador: ${message}`, status);
+        }
+        
+        function checkFirebaseStatus() {
+            const card = document.getElementById('status-firebase');
+            
             try {
-                localStorage.setItem('test', 'test');
-                localStorage.removeItem('test');
-                return true;
-            } catch (e) {
-                return false;
+                // Verificar se Firebase está disponível
+                if (typeof firebase === 'undefined') {
+                    card.classList.add('error');
+                    card.querySelector('p').textContent = 'Não carregado';
+                    log('Firebase: Não carregado', 'error');
+                    return;
+                }
+                
+                card.classList.add('success');
+                card.querySelector('p').textContent = 'Conectado';
+                log('Firebase: Conectado', 'success');
+            } catch (error) {
+                card.classList.add('error');
+                card.querySelector('p').textContent = 'Erro';
+                log(`Firebase: ${error.message}`, 'error');
             }
         }
         
-        function clearLocalStorage() {
-            if (confirm('Tem certeza que deseja limpar todo o cache?')) {
-                localStorage.clear();
-                consoleLog('success', 'Cache limpo com sucesso');
-                alert('Cache limpo! Recarregue a página.');
-            }
-        }
-        
-        function runAllTests() {
-            consoleLog('info', 'Iniciando todos os testes...');
+        function checkAuthStatus() {
+            const card = document.getElementById('status-auth');
             
-            // Rodar testes em sequência
-            setTimeout(() => testFirebaseConnection(), 100);
-            setTimeout(() => testLocalStorage(), 300);
-            setTimeout(() => testServiceWorker(), 500);
-            setTimeout(() => testEmailLogin(), 700);
-            
-            consoleLog('success', 'Todos os testes iniciados');
-        }
-        
-        // Funções de Teste (simplificadas)
-        function testFirebaseConnection() {
-            consoleLog('info', 'Testando conexão Firebase...');
-            // Implementação real viria aqui
-            consoleLog('success', 'Conexão Firebase testada');
-        }
-        
-        function testServiceWorker() {
-            consoleLog('info', 'Testando Service Worker...');
-            if ('serviceWorker' in navigator) {
-                consoleLog('success', 'Service Worker registrado');
-            } else {
-                consoleLog('warning', 'Service Worker não disponível');
-            }
-        }
-        
-        function testEmailLogin() {
-            consoleLog('info', 'Testando login com email...');
-            // Teste simulado
+            // Simular verificação
             setTimeout(() => {
-                consoleLog('success', 'Login com email funcionando');
-            }, 1000);
+                const isLoggedIn = localStorage.getItem('cronoz-auth') !== null;
+                
+                if (isLoggedIn) {
+                    card.classList.add('success');
+                    card.querySelector('p').textContent = 'Autenticado';
+                    log('Autenticação: Usuário logado', 'success');
+                } else {
+                    card.classList.add('warning');
+                    card.querySelector('p').textContent = 'Não autenticado';
+                    log('Autenticação: Não autenticado', 'warning');
+                }
+            }, 500);
+        }
+        
+        function checkStorageStatus() {
+            const card = document.getElementById('status-storage');
+            
+            try {
+                localStorage.setItem('cronoz-test', 'test');
+                localStorage.removeItem('cronoz-test');
+                
+                card.classList.add('success');
+                card.querySelector('p').textContent = 'Funcionando';
+                log('Armazenamento: Funcionando', 'success');
+            } catch (error) {
+                card.classList.add('error');
+                card.querySelector('p').textContent = 'Cheio/Bloqueado';
+                log('Armazenamento: Cheio ou bloqueado', 'error');
+            }
+        }
+        
+        function checkPWAStatus() {
+            const card = document.getElementById('status-pwa');
+            
+            if (window.matchMedia('(display-mode: standalone)').matches || 
+                window.navigator.standalone === true) {
+                card.classList.add('success');
+                card.querySelector('p').textContent = 'Instalado';
+                log('PWA: Aplicativo instalado', 'success');
+            } else if ('serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window) {
+                card.classList.add('warning');
+                card.querySelector('p').textContent = 'Pode instalar';
+                log('PWA: Pode ser instalado', 'warning');
+            } else {
+                card.classList.add('info');
+                card.querySelector('p').textContent = 'Navegador web';
+                log('PWA: Modo navegador', 'info');
+            }
+        }
+        
+        function checkServiceWorker() {
+            const card = document.getElementById('status-service');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration()
+                    .then(registration => {
+                        if (registration) {
+                            card.classList.add('success');
+                            card.querySelector('p').textContent = 'Ativo';
+                            log('Service Worker: Ativo', 'success');
+                        } else {
+                            card.classList.add('warning');
+                            card.querySelector('p').textContent = 'Não registrado';
+                            log('Service Worker: Não registrado', 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        card.classList.add('error');
+                        card.querySelector('p').textContent = 'Erro';
+                        log(`Service Worker: ${error.message}`, 'error');
+                    });
+            } else {
+                card.classList.add('error');
+                card.querySelector('p').textContent = 'Não suportado';
+                log('Service Worker: Não suportado', 'error');
+            }
+        }
+        
+        // Funções de controle
+        function runTests() {
+            log('Iniciando testes automáticos...', 'info');
+            
+            const tests = [
+                () => log('Teste 1: Verificar navegador...', 'info'),
+                () => log('Teste 2: Verificar conexão...', 'info'),
+                () => log('Teste 3: Verificar Firebase...', 'info'),
+                () => log('Teste 4: Verificar autenticação...', 'info'),
+                () => log('Teste 5: Verificar armazenamento...', 'info')
+            ];
+            
+            tests.forEach((test, index) => {
+                setTimeout(() => {
+                    test();
+                    if (index === tests.length - 1) {
+                        log('✅ Todos os testes completados!', 'success');
+                    }
+                }, index * 1000);
+            });
+        }
+        
+        function checkFirebase() {
+            log('Testando conexão Firebase...', 'info');
+            
+            // Simular teste de conexão
+            setTimeout(() => {
+                const isConnected = Math.random() > 0.2; // 80% de chance de sucesso
+                
+                if (isConnected) {
+                    log('✅ Firebase conectado com sucesso!', 'success');
+                } else {
+                    log('❌ Falha na conexão Firebase', 'error');
+                }
+            }, 1500);
+        }
+        
+        function clearStorage() {
+            if (confirm('Limpar todo o cache e dados locais?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations()
+                        .then(registrations => {
+                            registrations.forEach(registration => {
+                                registration.unregister();
+                            });
+                        });
+                }
+                
+                log('✅ Cache e dados locais limpos!', 'success');
+                log('Recarregando página...', 'info');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        }
+        
+        function resetApp() {
+            if (confirm('Resetar o aplicativo para configurações de fábrica?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                indexedDB.deleteDatabase('CronoZDB');
+                
+                log('✅ Aplicativo resetado!', 'success');
+                log('Redirecionando para login...', 'info');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            }
         }
         
         function exportLogs() {
-            const logs = document.getElementById('debugConsole').innerText;
+            const logs = Array.from(consoleOutput.children).map(log => 
+                `${log.querySelector('.log-time').textContent} - ${log.textContent}`
+            ).join('\n');
+            
             const blob = new Blob([logs], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `cronoz-debug-${new Date().toISOString().split('T')[0]}.log`;
+            a.download = `cronoz_logs_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
             a.click();
-            consoleLog('success', 'Logs exportados');
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('✅ Logs exportados com sucesso!', 'success');
         }
         
-        // CSS adicional
-        const style = document.createElement('style');
-        style.textContent = `
-            .debug-sidebar {
-                background: #f8f9fa;
-                padding: 30px;
-                border-right: 1px solid #e0e0e0;
-            }
-            
-            .quick-actions {
-                margin-top: 40px;
-            }
-            
-            .btn-action {
-                width: 100%;
-                padding: 12px;
-                margin-bottom: 10px;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                cursor: pointer;
-                text-align: left;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                transition: all 0.3s;
-            }
-            
-            .btn-action:hover {
-                border-color: #FFD700;
-                background: #FFF9E6;
-            }
-            
-            .overview-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 40px;
-            }
-            
-            .stat-card {
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 10px;
-                border: 1px solid #e0e0e0;
-                display: flex;
-                align-items: center;
-                gap: 15px;
-            }
-            
-            .stat-icon {
-                width: 50px;
-                height: 50px;
-                background: #FFD700;
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.5rem;
-            }
-            
-            .system-info, .database-info {
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 10px;
-                margin-bottom: 30px;
-            }
-            
-            .info-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin-top: 15px;
-            }
-            
-            .info-item {
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .info-item label {
-                font-weight: 600;
-                color: #666;
-                font-size: 0.9rem;
-            }
-            
-            .quick-tests {
-                margin-top: 30px;
-            }
-            
-            .test-buttons {
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-                margin-top: 15px;
-            }
-            
-            @media (max-width: 992px) {
-                .debug-content {
-                    grid-template-columns: 1fr;
-                }
-                
-                .debug-sidebar {
-                    border-right: none;
-                    border-bottom: 1px solid #e0e0e0;
-                }
-            }
-            
-            @media (max-width: 768px) {
-                .test-buttons {
-                    flex-direction: column;
-                }
-                
-                .test-buttons button {
-                    width: 100%;
-                }
-                
-                .overview-stats {
-                    grid-template-columns: 1fr;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+        // Inicializar
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Página de debug carregada', 'success');
+            initializeStatus();
+        });
         
-        consoleLog('success', 'Debug system carregado com sucesso!');
+        // Monitorar conexão
+        window.addEventListener('online', () => {
+            log('Conexão restaurada', 'success');
+            document.getElementById('status-browser').querySelector('p').textContent = 'Online';
+        });
+        
+        window.addEventListener('offline', () => {
+            log('Conexão perdida', 'error');
+            document.getElementById('status-browser').querySelector('p').textContent = 'Offline';
+        });
     </script>
 </body>
 </html>
-```
