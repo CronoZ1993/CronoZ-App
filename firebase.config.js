@@ -74,3 +74,13 @@ export {
 
 // Verificar conexão
 console.log("Firebase configurado com sucesso!");
+
+// ... configuração ...
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Exportar
+export { app, auth, db };
+export default app;
