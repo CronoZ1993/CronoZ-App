@@ -1,90 +1,72 @@
-import { db, auth } from './firebase-config.js';
-import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { auth, db } from './firebase-config.js';
+import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { showToast } from './utils.js';
 
-// Função para Alternar Tema (Claro/Escuro)
-export function alternarTema(isDark) {
-    if (isDark) {
-        document.body.classList.add('dark-theme');
-    } else {
-        document.body.classList.remove('dark-theme');
-    }
+// Alterar a cor base (Dourado/Personalizado)
+export function atualizarCorBase(novaCor) {
+    document.documentElement.style.setProperty('--gold', novaCor);
+    localStorage.setItem('customColor', novaCor);
+    
+    // Opcional: Salvar no perfil do usuário no Firestore
+    const uid = auth.currentUser.uid;
+    updateDoc(doc(db, "usuarios", uid), { corPreferida: novaCor });
+    showToast("Cor de destaque atualizada!");
+}
+
+// Alternar entre Dark e Light Mode
+export function toggleDarkMode() {
+    const isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    showToast(isDark ? "Modo Escuro ativado" : "Modo Claro ativado");
 }
 
-// Função para Aplicar Cor Personalizada (Roda de Cores)
-export function aplicarCorPersonalizada(cor) {
-    document.documentElement.style.setProperty('--gold', cor);
-    // Ajusta o 'gold-dark' automaticamente para manter o contraste
-    const darkCor = ajustarBrilho(cor, -20);
-    document.documentElement.style.setProperty('--gold-dark', darkCor);
-    localStorage.setItem('customColor', cor);
-}
+window.mudarCorPeloInput = (event) => {
+    atualizarCorBase(event.target.value);
+};
 
-// Função Auxiliar para escurecer a cor escolhida
-function ajustarBrilho(hex, percent) {
-    let r = parseInt(hex.slice(1, 3), 16);
-    let g = parseInt(hex.slice(3, 5), 16);
-    let b = parseInt(hex.slice(5, 7), 16);
-    r = Math.floor(r * (100 + percent) / 100);
-    g = Math.floor(g * (100 + percent) / 100);
-    b = Math.floor(b * (100 + percent) / 100);
-    return `rgb(${r}, ${g}, ${b})`;
-}
+// Exclusão Definitiva de Conta (Seção de Segurança do Pedido)
+export async function excluirContaUsuario() {
+    const confirmacao = confirm("ATENÇÃO: Isso excluirá permanentemente todos os seus dados, fotos e árvore. Deseja continuar?");
+    
+    if (confirmacao) {
+        const user = auth.currentUser;
+        const uid = user.uid;
 
-// Função para Restaurar Padrão Dourado
-export function restaurarPadrao() {
-    const padrao = "#D4AF37";
-    aplicarCorPersonalizada(padrao);
-}
-
-// Backup de Dados (Gera um JSON para o usuário baixar)
-export async function fazerBackup(userData) {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userData));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "cronoz_backup.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-}
-
-// Função para Excluir Conta (Atenção: Ação Irreversível)
-export async function excluirConta() {
-    const confirmar = confirm("TEM CERTEZA? Isso apagará todos os seus dados e árvore genealógica permanentemente.");
-    if (confirmar) {
         try {
-            const user = auth.currentUser;
-            // Aqui deletaríamos o documento no Firestore antes do usuário
-            await deleteDoc(doc(db, "usuarios", user.uid));
+            // 1. Deleta documento no Firestore
+            await deleteDoc(doc(db, "usuarios", uid));
+            // 2. Deleta o usuário do Auth
             await user.delete();
+            
+            showToast("Sua conta foi removida com sucesso.");
             window.location.reload();
-        } catch (error) {
-            alert("Erro ao excluir. Re-faça o login e tente novamente.");
+        } catch (e) {
+            showToast("Para excluir, você precisa ter feito login recentemente. Saia e entre de novo.");
         }
     }
 }
 
-// Gerenciamento de Assinatura (Premium)
-export async function resgatarCodigo(codigo) {
-    // Exemplo de lógica de resgate solicitada no pedido
-    if (codigo === "CRONOZFREE") {
-        alert("Código aceito! 1 mês de Premium resgatado.");
-        return true;
-    } else {
-        alert("Código inválido ou já utilizado.");
-        return false;
-    }
+// Renderiza a tela de personalização no conteúdo principal
+export function abrirPersonalizacao() {
+    const area = document.getElementById('content-area');
+    const corAtual = localStorage.getItem('customColor') || '#D4AF37';
+    
+    area.innerHTML = `
+        <div class="card-tray animate-in">
+            <h3>Personalização</h3>
+            <p>Escolha sua cor de destaque:</p>
+            <div class="color-picker-wrapper">
+                <input type="color" value="${corAtual}" onchange="mudarCorPeloInput(event)">
+            </div>
+            <hr>
+            <div class="theme-switch">
+                <span>Modo Escuro</span>
+                <button onclick="toggleDarkMode()" class="btn-gold-small">Alternar</button>
+            </div>
+        </div>
+    `;
+    closeMenu(); // Fecha o menu lateral após abrir a tela
 }
 
-// Função para disparar anúncios (Simulação para integração Google Ads)
-export function dispararAnuncio() {
-    console.log("Chamando Google Ads...");
-    // Aqui entra o script do AdSense que configuraremos no final
-}
-
-// Logout
-export function sairDaConta() {
-    auth.signOut().then(() => {
-        window.location.reload();
-    });
-}
+window.toggleDarkMode = toggleDarkMode;
+window.excluirConta = excluirContaUsuario;
