@@ -1,54 +1,24 @@
 {
-    "name": "CronoZ App",
-    "short_name": "CronoZ",
-    "description": "App completo com chat, contatos, calendário e árvore genealógica",
-    "start_url": "/CronoZ-App/",
-    "display": "standalone",
-    "background_color": "#121212",
-    "theme_color": "#d4af37",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "assets/icon-72x72.png",
-            "sizes": "72x72",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-96x96.png",
-            "sizes": "96x96",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-128x128.png",
-            "sizes": "128x128",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-144x144.png",
-            "sizes": "144x144",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-152x152.png",
-            "sizes": "152x152",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-192x192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-384x384.png",
-            "sizes": "384x384",
-            "type": "image/png"
-        },
-        {
-            "src": "assets/icon-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ],
-    "scope": "/CronoZ-App/",
-    "categories": ["social", "productivity", "lifestyle"]
+  "name": "CronoZ - Legado Familiar",
+  "short_name": "CronoZ",
+  "description": "Conectando gerações através de memórias, árvore genealógica e chat seguro.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#D4AF37",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "family", "lifestyle"]
 }
