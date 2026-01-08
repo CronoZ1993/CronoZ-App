@@ -1,103 +1,71 @@
-import { db, auth, storage } from './firebase-config.js';
-import { collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { showToast, generateId } from './utils.js';
+import { db, auth } from './firebase-config.js';
+import { collection, addDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { showToast } from './utils.js';
 
-// Função para adicionar um membro na árvore
-export async function adicionarMembro(nome, parentesco, superiorId = null) {
-    const uid = auth.currentUser.uid;
-    const novoMembro = {
-        ownerId: uid,
-        nome: nome,
-        parentesco: parentesco,
-        superiorId: superiorId, // ID do "pai/mãe" na árvore
-        criadoEm: new Date().toISOString()
-    };
-
-    try {
-        await addDoc(collection(db, "arvores"), novoMembro);
-        showToast("Membro adicionado à família!");
-    } catch (e) {
-        showToast("Erro ao criar membro.");
-    }
-}
-
-// Escutar mudanças na árvore em tempo real
-export function carregarArvore(callback) {
-    const uid = auth.currentUser.uid;
-    const q = query(collection(db, "arvores"), where("ownerId", "==", uid));
-
-    return onSnapshot(q, (snapshot) => {
-        const membros = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(membros);
-    });
-}
-
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-
-// Criar um novo Álbum
-export async function criarAlbum(nomeAlbum) {
-    const uid = auth.currentUser.uid;
-    const albumData = {
-        ownerId: uid,
-        nome: nomeAlbum,
-        fotos: [],
-        criadoEm: new Date().toISOString()
-    };
-
-    try {
-        const docRef = await addDoc(collection(db, "albuns"), albumData);
-        showToast("Álbum criado!");
-        return docRef.id;
-    } catch (e) {
-        showToast("Erro ao criar álbum.");
-    }
-}
-
-// Upload de foto para álbum específico
-export async function adicionarFotoAoAlbum(albumId, file) {
-    const uid = auth.currentUser.uid;
-    const fileId = generateId();
-    const storageRef = ref(storage, `usuarios/${uid}/albuns/${albumId}/${fileId}`);
-
-    try {
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        
-        // Atualiza a lista de fotos no Firestore
-        const albumRef = doc(db, "albuns", albumId);
-        // Nota: Em produção, usar arrayUnion para não sobrescrever
-        showToast("Foto adicionada com sucesso!");
-        return url;
-    } catch (e) {
-        showToast("Erro no upload da foto.");
-    }
-}
+let abaAtual = 'lista'; // Controle: 'lista' ou 'arvore'
 
 export function renderizarInterfaceArvore(membros) {
     const area = document.getElementById('content-area');
     area.innerHTML = `
         <div class="card-tray">
-            <h3>Árvore Genealógica</h3>
-            <button onclick="promptNovoMembro()" class="btn-gold-small">+ Adicionar Membro</button>
-            <div id="tree-display" class="tree-container">
-                ${membros.map(m => `
-                    <div class="tree-node" id="node-${m.id}">
-                        <strong>${m.nome}</strong><br>
-                        <small>${m.parentesco}</small>
-                    </div>
-                `).join('<div class="tree-line"></div>')}
+            <div class="tabs-tree">
+                <button onclick="mudarAbaTree('lista')" class="${abaAtual === 'lista' ? 'active' : ''}">Lista</button>
+                <button onclick="mudarAbaTree('arvore')" class="${abaAtual === 'arvore' ? 'active' : ''}">Árvore</button>
             </div>
-        </div>
-        <div class="card-tray">
-            <h3>Meus Álbuns</h3>
-            <div id="album-list" class="album-grid">
-                </div>
+            <button onclick="promptNovoMembro()" class="btn-gold-small" style="margin-top:10px">+ Novo Membro</button>
+            
+            <div id="tree-content" class="tree-body">
+                ${abaAtual === 'lista' ? gerarLista(membros) : gerarGrafico(membros)}
+            </div>
         </div>
     `;
 }
 
+window.mudarAbaTree = (aba) => {
+    abaAtual = aba;
+    // Recarrega a interface (o listener do onSnapshot cuidará disso no app.js)
+    showToast(`Mudando para ${aba}`);
+};
+
+function gerarLista(membros) {
+    if (membros.length === 0) return "<p>Nenhum familiar cadastrado.</p>";
+    return membros.map(m => `
+        <div class="tree-item-list">
+            <span><strong>${m.nome}</strong> (${m.parentesco})</span>
+        </div>
+    `).join('');
+}
+
+function gerarGrafico(membros) {
+    // Lógica simplificada de hierarquia visual
+    return `
+        <div class="tree-graph">
+            ${membros.map(m => `
+                <div class="tree-node">
+                    <div class="node-box">${m.nome}</div>
+                    <small>${m.parentesco}</small>
+                </div>
+            `).join('<div class="tree-line-v"></div>')}
+        </div>
+    `;
+}
+
+export async function adicionarMembro(nome, parentesco) {
+    try {
+        await addDoc(collection(db, "arvores"), {
+            ownerId: auth.currentUser.uid,
+            nome,
+            parentesco,
+            criadoEm: new Date().toISOString()
+        });
+        showToast("Familiar salvo!");
+    } catch (e) {
+        showToast("Erro ao salvar membro.");
+    }
+}
+
 window.promptNovoMembro = () => {
     const nome = prompt("Nome do familiar:");
-    const parent = prompt("Parentesco (ex: Pai, Avó):");
+    const parent = prompt("Parentesco:");
     if(nome && parent) adicionarMembro(nome, parent);
 };
