@@ -1,35 +1,32 @@
 import { db, auth, storage } from './firebase-config.js';
 import { collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-import { showToast, generateId } from './utils.js';
+import { showToast, gerarId } from './utils.js';
 
-// Criar novo álbum pessoal
-export async function criarNovoAlbum(nome) {
-    const uid = auth.currentUser.uid;
+export async function criarAlbum(nome) {
     try {
         await addDoc(collection(db, "albuns"), {
-            ownerId: uid,
+            ownerId: auth.currentUser.uid,
             nome: nome,
             fotos: [],
-            privado: true,
             criadoEm: new Date().toISOString()
         });
-        showToast("Álbum criado com sucesso!");
+        showToast("Álbum criado!");
+        renderAlbums(); 
     } catch (e) {
         showToast("Erro ao criar álbum.");
     }
 }
 
-// Upload de foto para um álbum específico
-export async function fazerUploadFoto(albumId, arquivo) {
+export async function uploadFoto(albumId, file) {
     const uid = auth.currentUser.uid;
-    const fotoId = generateId();
-    const storageRef = ref(storage, `usuarios/${uid}/albuns/${albumId}/${fotoId}`);
-
+    const storageRef = ref(storage, `albuns/${uid}/${albumId}/${gerarId()}`);
+    
     try {
-        await uploadBytes(storageRef, arquivo);
-        const url = await getDownloadURL(storageRef);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
         const albumRef = doc(db, "albuns", albumId);
+        
         await updateDoc(albumRef, {
             fotos: arrayUnion({ url, data: new Date().toISOString() })
         });
@@ -39,57 +36,56 @@ export async function fazerUploadFoto(albumId, arquivo) {
     }
 }
 
-// Buscar álbuns de um amigo específico
-export async function buscarAlbunsAmigo(amigoId) {
+export async function carregarAlbunsAmigo(amigoId) {
     const q = query(collection(db, "albuns"), where("ownerId", "==", amigoId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-// Listar contatos que possuem álbuns
-export async function listarContatosComAlbuns() {
-    const uid = auth.currentUser.uid;
-    // Buscamos na coleção de contatos (que será alimentada pelo chat/busca)
-    const q = query(collection(db, "usuarios")); 
-    const snapshot = await getDocs(q);
+    const snap = await getDocs(q);
+    const container = document.getElementById('amigos-albuns');
     
-    return snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(u => u.id !== uid); // Remove a si mesmo da lista de amigos
+    if (snap.empty) {
+        container.innerHTML = "<p>Este amigo ainda não possui álbuns públicos.</p>";
+        return;
+    }
+
+    container.innerHTML = snap.docs.map(doc => {
+        const a = doc.data();
+        const capa = a.fotos.length > 0 ? a.fotos[0].url : 'logo.png';
+        return `
+            <div class="album-item" onclick="abrirGaleria('${doc.id}')">
+                <img src="${capa}">
+                <div class="album-label">${a.nome} (${a.fotos.length})</div>
+            </div>
+        `;
+    }).join('');
 }
 
-export async function renderizarInterfaceAlbuns() {
+export function renderAlbumsUI(meusAlbuns, listaAmigos) {
     const area = document.getElementById('content-area');
-    const amigos = await listarContatosComAlbuns();
-
     area.innerHTML = `
         <div class="card-tray">
             <h3>Meus Álbuns</h3>
-            <button onclick="promptNovoAlbum()" class="btn-gold-small">+ Criar Álbum</button>
-            <div id="meus-albuns-list" class="album-grid"></div>
+            <div class="shortcut-grid">
+                <button onclick="novoAlbumPrompt()">+ Novo Álbum</button>
+            </div>
+            <div id="meus-albuns" class="album-grid">
+                ${meusAlbuns.map(a => `<div class="album-item"><img src="${a.fotos[0]?.url || 'logo.png'}"><div class="album-label">${a.nome}</div></div>`).join('')}
+            </div>
         </div>
-
         <div class="card-tray">
-            <h3>Álbuns de Amigos</h3>
-            <div class="amigos-lista-albuns">
-                ${amigos.map(amigo => `
-                    <div class="amigo-item" onclick="verAlbunsAmigo('${amigo.id}')">
-                        <img src="${amigo.foto || 'logo.png'}" class="chat-avatar">
-                        <span>${amigo.nome}</span>
+            <h3>Explorar Amigos</h3>
+            <div class="friends-row">
+                ${listaAmigos.map(amigo => `
+                    <div class="amigo-circle" onclick="carregarAlbunsAmigo('${amigo.uid}')">
+                        <img src="${amigo.foto}">
+                        <span>${amigo.nome.split(' ')[0]}</span>
                     </div>
                 `).join('')}
             </div>
+            <div id="amigos-albuns" class="album-grid" style="margin-top:15px"></div>
         </div>
     `;
 }
 
-window.promptNovoAlbum = () => {
-    const nome = prompt("Nome do álbum:");
-    if(nome) criarNovoAlbum(nome);
-};
-
-window.verAlbunsAmigo = async (id) => {
-    const albuns = await buscarAlbunsAmigo(id);
-    // Lógica para abrir os álbuns do amigo selecionado
-    console.log("Álbuns do amigo:", albuns);
+window.novoAlbumPrompt = () => {
+    const n = prompt("Nome do álbum:");
+    if(n) criarAlbum(n);
 };
