@@ -173,3 +173,28 @@ body.dark-theme .app-nav {
 body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+.btn-gold-small {
+    background: var(--gold);
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 5px;
+    font-size: 12px;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+#secao-niver {
+    text-align: center;
+    font-style: italic;
+    color: var(--gold-dark);
+    font-weight: 600;
+}
+
+.card-tray h3 {
+    border-bottom: 1px solid var(--gold);
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    font-size: 16px;
+}
