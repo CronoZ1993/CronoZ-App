@@ -207,3 +207,10 @@ function renderConfig() {
 window.sairDaConta = () => {
     auth.signOut();
 };
+
+// Registro do PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log("CronoZ: Offline Ready!"))
+    .catch((err) => console.log("Erro PWA:", err));
+}
